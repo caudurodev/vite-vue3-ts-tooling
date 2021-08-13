@@ -1,28 +1,31 @@
 <template>
-  <img alt="Vue logo" src="@/assets/logo.png" />
-  <HelloWorld msg="Hello Vue 3 + TypeScript + Vite" />
+  <div class="container mx-auto px-4 h-screen pop">
+    <img src="@/assets/logo.png" />
+    <h1>Interface</h1>
+  </div>
 </template>
 
 <script lang="ts">
   import { defineComponent } from 'vue'
 
-  import HelloWorld from '@/components/HelloWorld.vue'
-
   export default defineComponent({
     name: 'App',
-    components: {
-      HelloWorld,
+    async mounted() {
+      console.log('mounted1')
+
+      // const browserType = chrome ? chrome : browser
+      // await browserType.runtime.sendMessage({
+      //   action: 'popup.translations.activate',
+      // })
+      console.log('mounted2')
     },
   })
 </script>
 
 <style>
+  .pop,
   #app {
-    font-family: Avenir, Helvetica, Arial, sans-serif;
-    -webkit-font-smoothing: antialiased;
-    -moz-osx-font-smoothing: grayscale;
-    text-align: center;
-    color: #2c3e50;
-    margin-top: 60px;
+    width: 300px;
+    height: 300px;
   }
 </style>

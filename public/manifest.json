@@ -1,0 +1,40 @@
+{
+  "name": "chrome-extension-boilerplate-vite",
+  "version": "1.0.0",
+  "description": "made by chrome-extension-boilerplate-vite",
+  "manifest_version": 2,
+  "minimum_chrome_version": "80",
+  "permissions": ["<all_urls>", "storage", "tabs", "activeTab", "*://*/*"],
+  "background": {
+    "scripts": ["background/index.js"],
+    "persistent": true
+  },
+  "content_scripts": [
+    {
+      "js": ["content/jquery-3.6.0.js", "content/mark.js", "content/index.js"],
+      "css": ["content/css/content-css.css"],
+      "matches": ["<all_urls>"]
+    }
+  ],
+  "browser_action": {
+    "default_popup": "popup.html",
+    "default_icon": {
+      "16": "icons/favicon@16.png",
+      "48": "icons/favicon@48.png",
+      "64": "icons/favicon@64.png",
+      "128": "icons/favicon.png"
+    }
+  },
+  "options_ui": {
+    "page": "options.html",
+    "open_in_tab": true
+  },
+  "icons": {
+    "16": "icons/favicon@16.png",
+    "48": "icons/favicon@48.png",
+    "64": "icons/favicon@64.png",
+    "128": "icons/favicon.png"
+  },
+  "web_accessible_resources": ["www/*", "js/*", "css/*"],
+  "content_security_policy": "script-src 'self' 'unsafe-eval'; object-src 'self';"
+}
