@@ -1,5 +1,6 @@
 {
   "compilerOptions": {
+    "types": ["chrome"],
     "target": "esnext",
     "module": "esnext",
     "moduleResolution": "node",

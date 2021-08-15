@@ -67,12 +67,8 @@
 <script lang="ts">
   import { defineComponent, ref } from 'vue'
   import Language from './types/Language'
-  import Toggle from '@/components/Toggle.vue'
-
-  let browserType = null
-
-  if (typeof chrome !== 'undefined') browserType = chrome
-  if (typeof browser !== 'undefined') browserType = browser
+  import Toggle from './components/Toggle.vue'
+  import browser from 'webextension-polyfill'
 
   export default defineComponent({
     name: 'App',
@@ -96,11 +92,11 @@
         browserLanguage.length ? browserLanguage[0].code : false
       )
       const activateTranslations = async () => {
-        await browserType.runtime.sendMessage({
+        await browser.runtime.sendMessage({
           action: 'popup.translations.activate',
         })
       }
-      browserType.runtime.onMessage.addListener(async (request) => {
+      browser.runtime.onMessage.addListener(async (request) => {
         if (request.action === 'popup.language.detect') {
           currentTabLanguage.value = request.lang.language
         }
@@ -108,7 +104,7 @@
       const detectTabLanguage = async () => {
         if (userLanguage.value) {
           try {
-            const response = await browserType.runtime.sendMessage({
+            const response = await browser.runtime.sendMessage({
               action: 'popup.language.detect',
             })
             console.log('popup.language.detect response', response)
@@ -120,7 +116,7 @@
       }
       detectTabLanguage()
       const setLanguagePairs = async () => {
-        await browserType.runtime.sendMessage({
+        await browser.runtime.sendMessage({
           action: 'popup.language.set',
           userLanguage,
           currentTabLanguage,
@@ -129,7 +125,7 @@
       return {
         activateTranslations,
         currentTabLanguage,
-        browserType,
+        browser,
         detectTabLanguage,
         isSpeakingWords,
         isSpeakingSentences,

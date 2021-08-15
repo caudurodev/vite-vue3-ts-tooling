@@ -47,7 +47,8 @@
     "vite-plugin-components": "^0.13.2",
     "vite-plugin-icons": "^0.6.5",
     "vite-plugin-windicss": "^1.2.7",
-    "vue-tsc": "^0.2.0"
+    "vue-tsc": "^0.2.0",
+    "webextension-polyfill": "^0.8.0"
   },
   "config": {
     "commitizen": {
