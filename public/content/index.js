@@ -2,7 +2,6 @@ const SERVER_URL = 'http://192.168.1.11:6565'
 
 let popupTimeout = null
 let sentencePopupTimeout = null
-// let activeWordElement = null
 let lastSentence = { src: null, dest: null, id: null }
 let isEnabled = false
 let detectLanguageResult = null
@@ -16,11 +15,8 @@ const languageOptions = [
   { label: 'French', code: 'fr' },
   { label: 'Spanish', code: 'es' },
 ]
-let browserType = null
-if (chrome) browserType = chrome
-if (browser) browserType = browser
 
-browserType.runtime.onMessage.addListener(async (request) => {
+browser.runtime.onMessage.addListener(async (request) => {
   if (request.action === 'translations.activate') {
     if (isEnabled) {
       console.log('already enabled on page')
@@ -36,15 +32,15 @@ browserType.runtime.onMessage.addListener(async (request) => {
     } else {
       detectLanguageResult = await detectLanguage()
     }
-    browserType.runtime.sendMessage({
+    browser.runtime.sendMessage({
       action: 'bg.language.detect',
       detectLanguageResult,
     })
 
     return Promise.resolve(detectLanguageResult)
   } else if (request.action === 'language.set') {
-    console.log('language.set', userLanguage, currentTabLanguage)
-    userLanguage = request.browserlanguage
+    console.log('content language.set', request)
+    userLanguage = request.userLanguage
     currentTabLanguage = request.currentTabLanguage
     console.log('set languages:', userLanguage, currentTabLanguage)
   }
@@ -80,6 +76,7 @@ const wrapSentences = (node, sentendIdStart = 0, waitMs = 0) => {
       countSentences = countSentences + i
       textMatch = l.match(regex)
       if (!textMatch || (textMatch && textMatch.join(' ') !== pureText)) {
+        l = l.replace(/[-[\]{}()*+?.,\\^$|#\s]/g, '\\$&')
         regex = new RegExp(l, 'g')
       }
       instance.markRegExp(regex, {

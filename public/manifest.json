@@ -6,12 +6,18 @@
   "minimum_chrome_version": "80",
   "permissions": ["<all_urls>", "storage", "tabs", "activeTab", "*://*/*"],
   "background": {
-    "scripts": ["background/index.js"],
+    "scripts": ["content/browser-polyfill.js", "background/index.js"],
     "persistent": true
   },
   "content_scripts": [
     {
-      "js": ["content/jquery-3.6.0.js", "content/mark.js", "content/index.js"],
+      "js": [
+        "content/vue.global.js",
+        "content/browser-polyfill.js",
+        "content/jquery-3.6.0.js",
+        "content/mark.js",
+        "content/index.js"
+      ],
       "css": ["content/css/content-css.css"],
       "matches": ["<all_urls>"]
     }

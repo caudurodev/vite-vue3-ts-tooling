@@ -53,9 +53,9 @@
         py-2
         px-4
         rounded
-        bg-blue-500
+        bg-yellow-500
         text-white
-        hover:bg-blue-700
+        hover:bg-yellow-700
       "
       @click="activateTranslations()"
     >
@@ -118,8 +118,8 @@
       const setLanguagePairs = async () => {
         await browser.runtime.sendMessage({
           action: 'popup.language.set',
-          userLanguage,
-          currentTabLanguage,
+          userLanguage: userLanguage.value,
+          currentTabLanguage: currentTabLanguage.value,
         })
       }
       return {
