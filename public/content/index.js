@@ -1,4 +1,3 @@
-console.log('content script start')
 const SERVER_URL = 'http://192.168.1.11:6565'
 
 let popupTimeout = null
@@ -8,7 +7,7 @@ let lastSentence = { src: null, dest: null, id: null }
 let isEnabled = false
 let detectLanguageResult = null
 let userLanguage,
-  textLanguage = null
+  currentTabLanguage = null
 const languageOptions = [
   { label: 'English', code: 'en' },
   { label: 'Deutsch', code: 'de' },
@@ -17,27 +16,11 @@ const languageOptions = [
   { label: 'French', code: 'fr' },
   { label: 'Spanish', code: 'es' },
 ]
-console.log('content script start browserType')
-// let checkBrowser = null
 let browserType = null
 if (chrome) browserType = chrome
 if (browser) browserType = browser
 
-// checkBrowser = setInterval(() => {
-//   if (chrome) browserType = chrome
-//   if (browser) browserType = browser
-
-//   console.log('checking browserType', browserType)
-//   if (browserType) {
-//     console.log('content script start browserType2', browserType)
-//     clearInterval(checkBrowser)
-//   }
-// }, 1000)
-
-console.log('content script start browserType2', browserType)
-
 browserType.runtime.onMessage.addListener(async (request) => {
-  console.log('content script start addListener1')
   if (request.action === 'translations.activate') {
     if (isEnabled) {
       console.log('already enabled on page')
@@ -48,38 +31,36 @@ browserType.runtime.onMessage.addListener(async (request) => {
       contentEnable()
     }
   } else if (request.action === 'language.detect') {
-    console.log('content script start addListener2')
-    console.log('detect language, browserlanguage:', request.browserlanguage)
     if (isEnabled) {
       console.log('already detected language')
     } else {
-      console.log('detecting language')
       detectLanguageResult = await detectLanguage()
     }
+    browserType.runtime.sendMessage({
+      action: 'bg.language.detect',
+      detectLanguageResult,
+    })
+
+    return Promise.resolve(detectLanguageResult)
   } else if (request.action === 'language.set') {
-    console.log('content script start addListener3')
-    console.log('language.set', userLanguage, textLanguage)
+    console.log('language.set', userLanguage, currentTabLanguage)
     userLanguage = request.browserlanguage
-    textLanguage = request.currentTabLanguage
-    console.log('set languages:', userLanguage, textLanguage)
+    currentTabLanguage = request.currentTabLanguage
+    console.log('set languages:', userLanguage, currentTabLanguage)
   }
   console.log('content script start addListener end')
   return Promise.resolve()
 })
 
-console.log('content script 1ssss222sss sssaa')
-
 const setLanguageDefaults = async () => {
   detectLanguageResult = await detectLanguage()
-  textLanguage = detectLanguageResult.language
+  currentTabLanguage = detectLanguageResult.language
 
   const browserLanguage = languageOptions.filter((l) =>
     navigator.language.includes(l.code)
   )
   userLanguage = browserLanguage.length ? browserLanguage[0].code : false
 }
-
-console.log('content script 2')
 
 const wrapSentences = (node, sentendIdStart = 0, waitMs = 0) => {
   return new Promise((resolve) => {
@@ -261,7 +242,7 @@ const mergeSelectedWords = (evt) => {
             method: 'POST',
             body: JSON.stringify({
               q: searchText,
-              source: textLanguage,
+              source: currentTabLanguage,
               target: userLanguage,
             }),
             headers: { 'Content-Type': 'application/json' },
@@ -337,7 +318,7 @@ const interactiveWords = () => {
       method: 'POST',
       body: JSON.stringify({
         q: sentenceText,
-        source: textLanguage,
+        source: currentTabLanguage,
         target: userLanguage,
       }),
       headers: { 'Content-Type': 'application/json' },
@@ -380,14 +361,14 @@ const interactiveWords = () => {
       console.log(
         'wordhighlight click fetch',
         wordClickedText,
-        textLanguage,
+        currentTabLanguage,
         userLanguage
       )
       fetch(`${SERVER_URL}/translate`, {
         method: 'POST',
         body: JSON.stringify({
           q: wordClickedText,
-          source: textLanguage,
+          source: currentTabLanguage,
           target: userLanguage,
         }),
         headers: { 'Content-Type': 'application/json' },
@@ -457,14 +438,14 @@ const getPageContent = () => {
 const detectLanguage = async () => {
   const pageText = document.body.innerText
   let detectLanguage = null
-  if (window.browser) {
-    detectLanguage = await window.browser.i18n.detectLanguage(pageText)
-  } else if (window.chrome) {
-    await window.chrome.i18n.detectLanguage(pageText, (result) => {
+  if (browser) {
+    detectLanguage = await browser.i18n.detectLanguage(pageText)
+  } else if (chrome) {
+    await chrome.i18n.detectLanguage(pageText, (result) => {
       detectLanguage = result
     })
   } else {
-    console.log('browser detectLanguage failed')
+    console.log('browser detectLanguage failed', browser, chrome)
   }
   console.log('detectLanguage', detectLanguage)
   if (

@@ -1,33 +1,44 @@
-// import 'crx-hotreload';
-
-const browserType = window.chrome ? window.chrome : window.browser
-console.log('This is background page!2')
+let browserType = null
+if (chrome) browserType = chrome
+if (browser) browserType = browser
 
 const sendMessageToActiveTab = async (message) => {
-  console.log('sendMessageToActiveTab')
   if (window.browser) {
-    console.log('use ff way')
-
     browser.tabs
       .query({ currentWindow: true, active: true })
       .then(([tab]) => {
-        console.log('message to tab ', tab.id, message)
         browser.tabs.sendMessage(tab.id, message)
       })
       .catch((e) => console.log('message error', e))
   } else if (window.chrome) {
-    console.log('use chrome way')
     chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
-      console.log('send message to tab', tabs[0].id, message)
       chrome.tabs.sendMessage(tabs[0].id, message).catch((e) => console.log(e))
     })
+  } else {
+    console.log('browsertype not found - cannot send bg message ')
   }
 }
 
-browser.runtime.onMessage.addListener(async (request) => {
-  console.log('background received request', request)
-
+browserType.runtime.onMessage.addListener(async (request) => {
   if (request.action === 'popup.translations.activate') {
     await sendMessageToActiveTab({ action: 'translations.activate' })
+  }
+  if (request.action === 'popup.language.detect') {
+    await sendMessageToActiveTab({
+      action: 'language.detect',
+    })
+  }
+  if (request.action === 'bg.language.detect') {
+    browserType.runtime.sendMessage({
+      action: 'popup.language.detect',
+      lang: request.detectLanguageResult,
+    })
+  }
+  if (request.action === 'popup.language.set') {
+    await sendMessageToActiveTab({
+      action: 'language.set',
+      userLanguage: request.userLanguage,
+      currentTabLanguage: request.currentTabLanguage,
+    })
   }
 })
