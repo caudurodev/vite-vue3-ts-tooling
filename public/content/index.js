@@ -7,6 +7,9 @@ let isEnabled = false
 let detectLanguageResult = null
 let userLanguage,
   currentTabLanguage = null
+let shouldSpeakWords = true
+let shouldSpeakSentences = true
+
 const languageOptions = [
   { label: 'English', code: 'en' },
   { label: 'Deutsch', code: 'de' },
@@ -36,7 +39,6 @@ browser.runtime.onMessage.addListener(async (request) => {
       action: 'bg.language.detect',
       detectLanguageResult,
     })
-
     return Promise.resolve(detectLanguageResult)
   } else if (request.action === 'language.set') {
     console.log('content language.set', request)
@@ -58,68 +60,64 @@ const setLanguageDefaults = async () => {
   userLanguage = browserLanguage.length ? browserLanguage[0].code : false
 }
 
-const wrapSentences = (node, sentendIdStart = 0, waitMs = 0) => {
-  return new Promise((resolve) => {
-    const instance = new Mark($(node)[0])
-    const pureText = $(node).text().trim()
-    const lineBreaks = pureText.match(/[^\r\n]+/g)
+// function findDiff(str1, str2) {
+//   let diff = ''
+//   str2.split('').forEach(function (val, i) {
+//     if (val != str1.charAt(i)) diff += val
+//   })
+//   return diff
+// }
 
-    let countSentences = sentendIdStart
-    let sentenceIds = []
-    let regex =
-      /["’„]?[A-Z][^.?!:;]+((?![.?!][’"'"`’”„]?\s["’]?[A-Z][^.?!]).)+[.?!:;’"'"`’”„“\d$]+/g
-    // const regex = /[^.?!\d]+[.!?]+[\])'"`’”„]*|^.+/g
-
-    let textMatch
-    lineBreaks.forEach((l, i) => {
-      l = l.trim()
-      countSentences = countSentences + i
-      textMatch = l.match(regex)
-      if (!textMatch || (textMatch && textMatch.join(' ') !== pureText)) {
-        l = l.replace(/[-[\]{}()*+?.,\\^$|#\s]/g, '\\$&')
-        regex = new RegExp(l, 'g')
-      }
-      instance.markRegExp(regex, {
+const wrapSentences = async (s, instance, sentenceId = 0, delay = 0) => {
+  return new Promise((resolve, reject) => {
+    try {
+      // instance.markRegExp(new RegExp(s, 'gmui'), {
+      instance.mark(s, {
+        accuracy: 'exactly',
+        separateWordSearch: false,
+        diacritics: true,
         element: 'learnsentence',
-        exclude: [
-          '.mainEasyReadWindow *',
-          '#easyReadAppMain *',
-          '#easyReadTooltipSentence',
-          'style *',
-          'script *',
-        ],
+        exclude: ['style *', 'script *'],
         className: 'sentenceHighlight',
+        noMatch: function (term) {
+          console.log('not fond match on page:', term)
+        },
+        acrossElements: true,
         each: (e) => {
           const text = $(e).text().trim()
           if (text) {
-            countSentences = countSentences + 1
-            sentenceIds.push(countSentences)
-            $(e).attr('ref', `word${countSentences}`)
-            $(e).attr('data-sentence-id', countSentences)
+            sentenceId = sentenceId + 1
+            // sentenceIds.push(countSentences)
+            // $(e).attr('ref', `word${sentenceId}`)
+            $(e).attr('data-sentence-id', sentenceId)
             $(e).wrapInner('<span class="originalSentence" />')
             if (text.split(' ').length > 2) {
               $(e).find('.originalSentence').after(`
-                  <span class="translationSentence">
-                    <span class="translationSentenceText"></span>
-                    <button class="translateSentenceButton">
-                      <svg class="svg-icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 5h12M9 3v2m1.048 9.5A18.022 18.022 0 016.412 9m6.088 9h7M11 21l5-10 5 10M12.751 5C11.783 10.77 8.07 15.61 3 18.129" />
-                      </svg>
-                    </button>
-                  </span>
-                  `)
+                    <span class="translationSentence">
+                      <span class="translationSentenceText"></span>
+                      <button class="translateSentenceButton">
+                        <svg class="svg-icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 5h12M9 3v2m1.048 9.5A18.022 18.022 0 016.412 9m6.088 9h7M11 21l5-10 5 10M12.751 5C11.783 10.77 8.07 15.61 3 18.129" />
+                        </svg>
+                      </button>
+                    </span>
+                    `)
             }
           }
         },
       })
-      if (sentenceIds.length > 0 || waitMs === 0) {
+
+      if (delay === 0) {
         setTimeout(() => {
-          resolve([countSentences, sentenceIds])
-        }, waitMs)
+          resolve()
+        }, delay)
       } else {
-        resolve([countSentences, sentenceIds])
+        resolve()
       }
-    })
+    } catch (e) {
+      console.log('mark error', e)
+      reject(e)
+    }
   })
 }
 
@@ -231,6 +229,10 @@ const mergeSelectedWords = (evt) => {
         })
         searchText = searchText.trim()
         if (searchText) {
+          if (shouldSpeakWords) {
+            //speak
+            text2Speech(searchText, currentTabLanguage)
+          }
           $(`span[data-range-id=${rangeID}]`)
             .find('.range-translation')
             .html(spinnerAnimation())
@@ -251,7 +253,7 @@ const mergeSelectedWords = (evt) => {
                 .text(data.translatedText)
             })
             .catch((e) => {
-              console.log(e)
+              console.log('fetch error', e)
             })
         }
       }
@@ -291,7 +293,6 @@ const interactiveWords = () => {
 
   $(document).on('click', '.translateSentenceButton', (evt) => {
     evt.preventDefault() // stops links
-
     $('#easyReadTooltipSentence').hide()
     $(document).find('.originalSentence').removeClass('hover')
     clearTimeout(sentencePopupTimeout)
@@ -310,6 +311,12 @@ const interactiveWords = () => {
       .each((i, e) => {
         sentenceText += $(e).text() + ' '
       })
+
+    if (shouldSpeakSentences) {
+      //speak
+
+      text2Speech(sentenceText, currentTabLanguage)
+    }
 
     fetch(`${SERVER_URL}/translate`, {
       method: 'POST',
@@ -349,6 +356,11 @@ const interactiveWords = () => {
     $(mainWrapper).toggleClass('active')
 
     const wordClickedText = $(mainWrapper).find('.original').text().trim()
+
+    if (shouldSpeakWords) {
+      //speak
+      text2Speech(wordClickedText, currentTabLanguage)
+    }
 
     const wordClickedId = $(mainWrapper).attr('data-word-id')
     if ($(mainWrapper).hasClass('active')) {
@@ -476,28 +488,66 @@ const detectLanguage = async () => {
     })
 }
 
+const getAllPageSentences = (el) => {
+  const sentences = []
+  // let textNodes = getPageContent()
+  const pureText = $(el).text()
+  // const pureText = document.body.innerText
+
+  const regex =
+    /["’„]?[A-Z][^.?!:;]+((?![.?!][’"'"`’”„]?\s["’]?[A-Z][^.?!]).)+[.?!:;’"'"`’”„“\d$]+/g
+
+  // for (let i = 0; i < textNodes.length; i++) {
+  //   // text = node.text().trim()
+  //   // const pureText = document.body.innerText.replace(/\s+/g, ' ')
+  //   // const pureText = $(textNodes[i]).text().replace(/\s+/g, ' ').trim()
+  //   const pureText = $(textNodes[i]).text()
+  //   if (!pureText) continue
+
+  const lineBreaks = pureText.match(regex)
+
+  if (lineBreaks) {
+    lineBreaks.forEach((l) => {
+      let innerLines = l && l.split('\n')
+      if (innerLines && innerLines.length) {
+        innerLines.forEach((il) => {
+          let innerLine = il.trim()
+          if (innerLine) {
+            sentences.push(innerLine)
+          }
+        })
+      }
+    })
+  }
+  // const diffText1 = findDiff(sentences.join(' '), pureText)
+  // if (diffText1) sentences.push(diffText1)
+  // }
+  return sentences
+}
+
 const contentEnable = async () => {
   interactiveWords()
-  let sentenceIdStart = 0
-  let wordIdStart = 0
-  let textNodes = getPageContent()
-  let node, text
-  for (let i = 0; i < textNodes.length; i++) {
-    node = $(textNodes[i])
-    text = node.text()
-    let delay = 0
-    if (text.replace(/\s+/g, '')) {
-      try {
-        let [countSentences, sentenceIds] = await wrapSentences(
-          node,
-          sentenceIdStart,
-          delay
-        )
-        sentenceIdStart = countSentences
-
-        for (let j = 0; j < sentenceIds.length; j++) {
+  const textNodes = getPageContent()
+  if (!textNodes) return
+  console.log('textNodes', textNodes)
+  for (let j = 0; j < textNodes.length; j++) {
+    const node = textNodes[j]
+    const sentences = getAllPageSentences(node)
+    console.log('sentences', sentences)
+    const instance = new Mark($(node)[0])
+    if (sentences.length) {
+      let wordIdStart = 0
+      let s
+      let sentenceId
+      for (let i = 0; i < sentences.length; i++) {
+        s = sentences[i]
+        sentenceId = i
+        let delay = 0
+        try {
+          // console.log('sentence', s)
+          await wrapSentences(s, instance, sentenceId, delay)
           let sentenceNode = $(
-            `.sentenceHighlight[data-sentence-id=${sentenceIds[j]}]`
+            `.sentenceHighlight[data-sentence-id=${sentenceId}]`
           )
           let bgColor = $(sentenceNode).css('backgroundColor')
           let color = $(sentenceNode).css('color')
@@ -507,10 +557,9 @@ const contentEnable = async () => {
             $(sentenceNode).css('backgroundColor', bgColor)
             $(sentenceNode).css('color', color)
           }, 500)
-
           try {
             let [countWords, wordIds] = await wrapWords(
-              sentenceNode[0],
+              sentenceNode,
               wordIdStart
             )
             wordIds
@@ -518,12 +567,10 @@ const contentEnable = async () => {
           } catch (e) {
             console.log('error parsing word', e)
           }
+        } catch (e) {
+          console.log('error parsing sentence', e)
         }
-      } catch (e) {
-        console.log('error parsing sentence', e)
       }
     }
   }
 }
-
-console.log('content script end')

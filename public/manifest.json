@@ -12,7 +12,8 @@
   "content_scripts": [
     {
       "js": [
-        "content/vue.global.js",
+        "content/bundle.js",
+        "content/TextToSpeech.js",
         "content/browser-polyfill.js",
         "content/jquery-3.6.0.js",
         "content/mark.js",

@@ -102,16 +102,14 @@
         }
       })
       const detectTabLanguage = async () => {
-        if (userLanguage.value) {
-          try {
-            const response = await browser.runtime.sendMessage({
-              action: 'popup.language.detect',
-            })
-            console.log('popup.language.detect response', response)
-            // currentTabLanguage.value
-          } catch (e) {
-            console.log('error', e)
-          }
+        try {
+          const response = await browser.runtime.sendMessage({
+            action: 'popup.language.detect',
+          })
+          console.log('popup.language.detect response', response)
+          // currentTabLanguage.value
+        } catch (e) {
+          console.log('error', e)
         }
       }
       detectTabLanguage()
