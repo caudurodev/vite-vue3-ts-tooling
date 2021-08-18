@@ -31,12 +31,12 @@ const text2Speech = async (text, lang, speed = 1) => {
   const voices = await getLangVoices(lang)
   return new Promise(() => {
     if (voices) {
-      window.speechSynthesis.cancel()
+      // window.speechSynthesis.cancel()
       const synth = window.speechSynthesis
       const utterThis = new SpeechSynthesisUtterance(text)
       utterThis.rate = speed
       utterThis.voice = voices[0]
-      console.log('speak', utterThis)
+      // console.log('speak', utterThis)
       synth.speak(utterThis)
     }
   })

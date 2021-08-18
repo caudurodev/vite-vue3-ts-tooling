@@ -71,47 +71,42 @@ function findDiff(str1, str2) {
 const wrapSentences = async (s, node, sentenceId = 0, delay = 0) => {
   return new Promise((resolve, reject) => {
     try {
-      // const box = $(node)[0]
-      // const searchText = s
-      // const regex = new RegExp(searchText, 'gi')
-
-      // let text = $(node)
-      //   .html()
-      //   .replace(
-      //     /(<learnsentence class="sentenceHighlight">|<\/learnsentence>)/gim,
-      //     ''
-      //   )
-
-      // const newText = text.replace(
-      //   regex,
-      //   '<learnsentence class="sentenceHighlight">$&</learnsentence>'
-      // )
-      // $(node).html(newText)
       const instance = new Mark($(node)[0])
-      // const search = new RegExp(s.split('').join('(?:\ns*)?')) //ignore whitespace amounts
-      const search = new RegExp(s.split(' ').join('[\\s\\S]*'), 'g')
-      // const search = new RegExp(s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'gm')
-      instance.markRegExp(search, {
-        // instance.mark(s, {
+      const notFound = []
+      // ignores irregular whitespaces
+      // const search = new RegExp(s, 'mg')
+
+      // console.log('regex', search)
+      // console.log('sentence', s)
+      // console.log('node', node)
+      instance.mark(s, {
+        // instance.markRegExp(search, {
         accuracy: 'exactly',
         acrossElements: true,
         separateWordSearch: false,
         diacritics: true,
         element: 'learnsentence',
-        exclude: ['style *', 'script *'],
+        // ignoreGroups: true,
+        exclude: [
+          'style *',
+          'script *',
+          // 'learnsentence',
+          // '.sentenceHighlight',
+          '.originalSentence',
+        ],
         className: 'sentenceHighlight',
         noMatch: function (term) {
           console.log(`not found match on page: "${term}"`)
+          if (term.trim()) notFound.push(term)
         },
         each: (e) => {
           const text = $(e).text().trim()
           if (text) {
             sentenceId = sentenceId + 1
-            // sentenceIds.push(countSentences)
-            $(e).attr('ref', `word${sentenceId}`)
+            // $(e).attr('ref', `word${sentenceId}`)
             $(e).attr('data-sentence-id', sentenceId)
             $(e).wrapInner('<span class="originalSentence" />')
-            if (text.split(' ').length > 2) {
+            if (text.split(' ').length > 1) {
               $(e).find('.originalSentence').after(`
                     <span class="translationSentence">
                       <span class="translationSentenceText"></span>
@@ -126,6 +121,53 @@ const wrapSentences = async (s, node, sentenceId = 0, delay = 0) => {
           }
         },
       })
+      if (notFound.length > 0) {
+        notFound.forEach((nf) => {
+          const search = new RegExp(nf.split(' ').join('[\\s\\S]*'), 'mg')
+          instance.markRegExp(search, {
+            accuracy: 'exactly',
+            acrossElements: true,
+            separateWordSearch: false,
+            diacritics: true,
+            element: 'learnsentence',
+            // ignoreGroups: true,
+            exclude: [
+              'style *',
+              'script *',
+              // 'learnsentence',
+              // '.sentenceHighlight',
+              '.originalSentence',
+            ],
+            className: 'sentenceHighlight',
+            noMatch: function (term) {
+              notFound.push(term)
+              console.log(`not found match on page: "${term}"`)
+            },
+            each: (e) => {
+              const text = $(e).text().trim()
+              if (text) {
+                sentenceId = sentenceId + 1
+                // $(e).attr('ref', `word${sentenceId}`)
+                $(e).attr('data-sentence-id', sentenceId)
+                $(e).wrapInner('<span class="originalSentence" />')
+                if (text.split(' ').length > 1) {
+                  $(e).find('.originalSentence').after(`
+                        <span class="translationSentence">
+                          <span class="translationSentenceText"></span>
+                          <button class="translateSentenceButton">
+                            <svg class="svg-icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 5h12M9 3v2m1.048 9.5A18.022 18.022 0 016.412 9m6.088 9h7M11 21l5-10 5 10M12.751 5C11.783 10.77 8.07 15.61 3 18.129" />
+                            </svg>
+                          </button>
+                        </span>
+                        `)
+                }
+              }
+            },
+          })
+        })
+      }
+
       if (delay === 0) {
         setTimeout(() => {
           resolve()
@@ -208,9 +250,6 @@ const getActiveWords = (sentenceEl) => {
 }
 
 const mergeSelectedWords = (evt) => {
-  // const wordClickedId = $(evt.target)
-  //   .closest('.wordHighlight')
-  //   .attr('data-word-id')
   const sentenceEl = $(evt.target).closest('.sentenceHighlight')
   const activeWords = getActiveWords(sentenceEl)
   const mergeWords = rangeify(activeWords)
@@ -250,6 +289,7 @@ const mergeSelectedWords = (evt) => {
         if (searchText) {
           if (shouldSpeakWords) {
             //speak
+            console.log('speak', searchText)
             text2Speech(searchText, currentTabLanguage)
           }
           $(`span[data-range-id=${rangeID}]`)
@@ -376,9 +416,26 @@ const interactiveWords = () => {
 
     const wordClickedText = $(mainWrapper).find('.original').text().trim()
 
-    if (shouldSpeakWords) {
+    if (
+      shouldSpeakWords &&
+      $(evt.target).closest('.range-translation').length === 0
+    ) {
       //speak
-      text2Speech(wordClickedText, currentTabLanguage)
+      // timeout to wait for dom to be updated
+      const target = evt.target
+      setTimeout(() => {
+        const isRangedTranslation = Boolean(
+          $(target).closest('.range-translation').length
+        )
+        console.log(
+          'speak single?',
+          isRangedTranslation,
+          $(target).closest('.range-translation'),
+          target
+        )
+        if (!isRangedTranslation)
+          text2Speech(wordClickedText, currentTabLanguage)
+      }, 500)
     }
 
     const wordClickedId = $(mainWrapper).attr('data-word-id')
@@ -555,13 +612,6 @@ const getAllPageSentences = (el) => {
   const regex =
     /["’„]?[A-Z][^.?!:;]+((?![.?!][’"'"`’”„]?\s["’]?[A-Z][^.?!]).)+[.?!:;’"'"`’”„“\d$]+/g
 
-  // for (let i = 0; i < textNodes.length; i++) {
-  //   // text = node.text().trim()
-  //   // const pureText = document.body.innerText.replace(/\s+/g, ' ')
-  //   // const pureText = $(textNodes[i]).text().replace(/\s+/g, ' ').trim()
-  //   const pureText = $(textNodes[i]).text()
-  //   if (!pureText) continue
-
   const InnerSentences = pureText.match(regex)
 
   // console.log(`InnerSentences: "${InnerSentences}"`)
@@ -571,7 +621,9 @@ const getAllPageSentences = (el) => {
       // console.log(`add sentence to sentences: "${l}"`)
       sentences.push(l.trim())
       // let innerLines = l.match(/\r?\n/)
-      // if (innerLines && innerLines.length) {
+      // let innerLines = l.match(regex)
+      // // console.log('innerLines?', innerLines)
+      // if (innerLines && innerLines.length > 0) {
       //   innerLines.forEach((il) => {
       //     let innerLine = il.trim()
       //     if (innerLine) {
@@ -579,7 +631,7 @@ const getAllPageSentences = (el) => {
       //     }
       //   })
       // } else {
-      //   sentences.push(l)
+      //   sentences.push(l.trim())
       // }
     })
   } else if (pureText.trim()) {
@@ -620,7 +672,7 @@ const contentEnable = async () => {
 
     // console.log('node', node)
     // console.log('mark sentences', sentences)
-    // console.log('in node', node)
+    // // console.log('in node', node)
     // console.log(`node text: "${$(node).text()}"`)
     // return
 
@@ -628,7 +680,7 @@ const contentEnable = async () => {
       for (let i = 0; i < sentences.length; i++) {
         sentenceId = sentenceId + 1
         try {
-          // console.log('sentence', s)
+          // console.log('sentence', sentences[i], node)
           // await wrapSentences(s, instance, sentenceId, delay)
           await wrapSentences(sentences[i], node, sentenceId, delay)
           let sentenceNode = $(
