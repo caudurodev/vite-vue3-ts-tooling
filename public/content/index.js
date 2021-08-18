@@ -68,32 +68,24 @@ function findDiff(str1, str2) {
   return diff
 }
 
+function uniqueID() {
+  return Math.floor(Math.random() * Date.now())
+}
+
 const wrapSentences = async (s, node, sentenceId = 0, delay = 0) => {
+  let createdSentences = []
   return new Promise((resolve, reject) => {
     try {
       const instance = new Mark($(node)[0])
       const notFound = []
-      // ignores irregular whitespaces
-      // const search = new RegExp(s, 'mg')
 
-      // console.log('regex', search)
-      // console.log('sentence', s)
-      // console.log('node', node)
       instance.mark(s, {
-        // instance.markRegExp(search, {
         accuracy: 'exactly',
         acrossElements: true,
         separateWordSearch: false,
         diacritics: true,
         element: 'learnsentence',
-        // ignoreGroups: true,
-        exclude: [
-          'style *',
-          'script *',
-          // 'learnsentence',
-          // '.sentenceHighlight',
-          '.originalSentence',
-        ],
+        exclude: ['style *', 'script *', '.originalSentence'],
         className: 'sentenceHighlight',
         noMatch: function (term) {
           console.log(`not found match on page: "${term}"`)
@@ -102,8 +94,8 @@ const wrapSentences = async (s, node, sentenceId = 0, delay = 0) => {
         each: (e) => {
           const text = $(e).text().trim()
           if (text) {
-            sentenceId = sentenceId + 1
-            // $(e).attr('ref', `word${sentenceId}`)
+            sentenceId = uniqueID()
+            createdSentences.push(sentenceId)
             $(e).attr('data-sentence-id', sentenceId)
             $(e).wrapInner('<span class="originalSentence" />')
             if (text.split(' ').length > 1) {
@@ -130,14 +122,7 @@ const wrapSentences = async (s, node, sentenceId = 0, delay = 0) => {
             separateWordSearch: false,
             diacritics: true,
             element: 'learnsentence',
-            // ignoreGroups: true,
-            exclude: [
-              'style *',
-              'script *',
-              // 'learnsentence',
-              // '.sentenceHighlight',
-              '.originalSentence',
-            ],
+            exclude: ['style *', 'script *', '.originalSentence'],
             className: 'sentenceHighlight',
             noMatch: function (term) {
               notFound.push(term)
@@ -146,8 +131,8 @@ const wrapSentences = async (s, node, sentenceId = 0, delay = 0) => {
             each: (e) => {
               const text = $(e).text().trim()
               if (text) {
-                sentenceId = sentenceId + 1
-                // $(e).attr('ref', `word${sentenceId}`)
+                sentenceId = uniqueID()
+                createdSentences.push(sentenceId)
                 $(e).attr('data-sentence-id', sentenceId)
                 $(e).wrapInner('<span class="originalSentence" />')
                 if (text.split(' ').length > 1) {
@@ -167,16 +152,15 @@ const wrapSentences = async (s, node, sentenceId = 0, delay = 0) => {
           })
         })
       }
-
       if (delay === 0) {
         setTimeout(() => {
-          resolve()
+          resolve(createdSentences)
         }, delay)
       } else {
-        resolve()
+        resolve(createdSentences)
       }
     } catch (e) {
-      console.log('mark error', e)
+      console.log('mark sentence error', e)
       reject(e)
     }
   })
@@ -678,31 +662,42 @@ const contentEnable = async () => {
 
     if (sentences.length) {
       for (let i = 0; i < sentences.length; i++) {
+        let createdSentences = []
         sentenceId = sentenceId + 1
         try {
           // console.log('sentence', sentences[i], node)
           // await wrapSentences(s, instance, sentenceId, delay)
-          await wrapSentences(sentences[i], node, sentenceId, delay)
-          let sentenceNode = $(
-            `.sentenceHighlight[data-sentence-id=${sentenceId}]`
+          createdSentences = await wrapSentences(
+            sentences[i],
+            node,
+            sentenceId,
+            delay
           )
-          // let bgColor = $(sentenceNode).css('backgroundColor')
-          // let color = $(sentenceNode).css('color')
-          // $(sentenceNode).css('backgroundColor', '#d53f8c')
-          // $(sentenceNode).css('color', '#FFFFFF')
-          // setTimeout(() => {
-          //   $(sentenceNode).css('backgroundColor', bgColor)
-          //   $(sentenceNode).css('color', color)
-          // }, 500)
-          try {
-            let [countWords, wordIds] = await wrapWords(
-              sentenceNode,
-              wordIdStart
-            )
-            wordIds
-            wordIdStart = countWords
-          } catch (e) {
-            console.log('error parsing word', e)
+          if (createdSentences.length > 0) {
+            for (let k = 0; k < createdSentences.length; k++) {
+              const cs = createdSentences[k]
+              let sentenceNode = $(`.sentenceHighlight[data-sentence-id=${cs}]`)
+              console.log('sentencenode', sentenceNode)
+              console.log('sentencenode id', cs)
+              // let bgColor = $(sentenceNode).css('backgroundColor')
+              // let color = $(sentenceNode).css('color')
+              // $(sentenceNode).css('backgroundColor', '#d53f8c')
+              // $(sentenceNode).css('color', '#FFFFFF')
+              // setTimeout(() => {
+              //   $(sentenceNode).css('backgroundColor', bgColor)
+              //   $(sentenceNode).css('color', color)
+              // }, 500)
+              try {
+                let [countWords, wordIds] = await wrapWords(
+                  sentenceNode,
+                  wordIdStart
+                )
+                wordIds
+                wordIdStart = countWords
+              } catch (e) {
+                console.log('error parsing word', e)
+              }
+            }
           }
         } catch (e) {
           console.log('error parsing sentence', e)
