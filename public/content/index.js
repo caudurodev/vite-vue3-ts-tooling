@@ -60,35 +60,55 @@ const setLanguageDefaults = async () => {
   userLanguage = browserLanguage.length ? browserLanguage[0].code : false
 }
 
-// function findDiff(str1, str2) {
-//   let diff = ''
-//   str2.split('').forEach(function (val, i) {
-//     if (val != str1.charAt(i)) diff += val
-//   })
-//   return diff
-// }
+function findDiff(str1, str2) {
+  let diff = ''
+  str2.split('').forEach(function (val, i) {
+    if (val != str1.charAt(i)) diff += val
+  })
+  return diff
+}
 
-const wrapSentences = async (s, instance, sentenceId = 0, delay = 0) => {
+const wrapSentences = async (s, node, sentenceId = 0, delay = 0) => {
   return new Promise((resolve, reject) => {
     try {
-      // instance.markRegExp(new RegExp(s, 'gmui'), {
-      instance.mark(s, {
+      // const box = $(node)[0]
+      // const searchText = s
+      // const regex = new RegExp(searchText, 'gi')
+
+      // let text = $(node)
+      //   .html()
+      //   .replace(
+      //     /(<learnsentence class="sentenceHighlight">|<\/learnsentence>)/gim,
+      //     ''
+      //   )
+
+      // const newText = text.replace(
+      //   regex,
+      //   '<learnsentence class="sentenceHighlight">$&</learnsentence>'
+      // )
+      // $(node).html(newText)
+      const instance = new Mark($(node)[0])
+      // const search = new RegExp(s.split('').join('(?:\ns*)?')) //ignore whitespace amounts
+      const search = new RegExp(s.split(' ').join('[\\s\\S]*'), 'g')
+      // const search = new RegExp(s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'gm')
+      instance.markRegExp(search, {
+        // instance.mark(s, {
         accuracy: 'exactly',
+        acrossElements: true,
         separateWordSearch: false,
         diacritics: true,
         element: 'learnsentence',
         exclude: ['style *', 'script *'],
         className: 'sentenceHighlight',
         noMatch: function (term) {
-          console.log('not fond match on page:', term)
+          console.log(`not found match on page: "${term}"`)
         },
-        acrossElements: true,
         each: (e) => {
           const text = $(e).text().trim()
           if (text) {
             sentenceId = sentenceId + 1
             // sentenceIds.push(countSentences)
-            // $(e).attr('ref', `word${sentenceId}`)
+            $(e).attr('ref', `word${sentenceId}`)
             $(e).attr('data-sentence-id', sentenceId)
             $(e).wrapInner('<span class="originalSentence" />')
             if (text.split(' ').length > 2) {
@@ -106,7 +126,6 @@ const wrapSentences = async (s, instance, sentenceId = 0, delay = 0) => {
           }
         },
       })
-
       if (delay === 0) {
         setTimeout(() => {
           resolve()
@@ -423,8 +442,24 @@ const getTextNodes = (el) => {
   const textNodes = []
   let currentTextNode
   while ((currentTextNode = iterator.nextNode())) {
-    if (!$(currentTextNode).parent().is('script,style,stylescript')) {
-      textNodes.push(currentTextNode)
+    if (
+      !$(currentTextNode).parent().is('script,style,stylescript') &&
+      $(currentTextNode).text().replace(/\s+/g, '').trim()
+    ) {
+      // parent can not already have been added
+      if (
+        textNodes.filter(
+          (t) =>
+            $(t.parent)[0] === $(currentTextNode).parent()[0] ||
+            $(t.node)[0] === $(currentTextNode)[0]
+        ).length === 0
+      ) {
+        textNodes.push({
+          node: currentTextNode,
+          nodeType: $(currentTextNode).parent().nodeName,
+          parent: $(currentTextNode).parent(),
+        })
+      }
     }
   }
   return textNodes
@@ -432,15 +467,18 @@ const getTextNodes = (el) => {
 
 const getPageContent = () => {
   let textNodes = getTextNodes($('body')[0])
+
   textNodes = textNodes.filter((n) => {
-    const textContent = $(n).text()
+    const node = n.parent
+    const textContent = $(node).text()
     const stripped = textContent.replace(/\s+/g, '')
-    const isVisible = $(n)[0].offsetParent !== null
-    if (stripped.length > 0 && isVisible) {
+    const isVisible = $(node)[0].offsetParent !== null
+    if (stripped && isVisible) {
       return true
     }
     return false
   })
+  // console.log('textNodes', textNodes)
   return textNodes
 }
 
@@ -488,10 +526,30 @@ const detectLanguage = async () => {
     })
 }
 
+// String.prototype.trimLeft = function (charlist) {
+//   if (charlist === undefined) charlist = 's'
+
+//   return this.replace(new RegExp('^[' + charlist + ']+'), '')
+// }
+
+function getDifference(a, b) {
+  var i = 0
+  var j = 0
+  var result = ''
+
+  while (j < b.length) {
+    if (a[i] != b[j] || i == a.length) result += b[j]
+    else i++
+    j++
+  }
+  return result
+}
+
 const getAllPageSentences = (el) => {
-  const sentences = []
+  let sentences = []
   // let textNodes = getPageContent()
-  const pureText = $(el).text()
+  const pureText = $(el).text().replace(/\s\s+/g, ' ').trim()
+  // console.log(`pureText: "${pureText}"`)
   // const pureText = document.body.innerText
 
   const regex =
@@ -504,59 +562,86 @@ const getAllPageSentences = (el) => {
   //   const pureText = $(textNodes[i]).text()
   //   if (!pureText) continue
 
-  const lineBreaks = pureText.match(regex)
+  const InnerSentences = pureText.match(regex)
 
-  if (lineBreaks) {
-    lineBreaks.forEach((l) => {
-      let innerLines = l && l.split('\n')
-      if (innerLines && innerLines.length) {
-        innerLines.forEach((il) => {
-          let innerLine = il.trim()
-          if (innerLine) {
-            sentences.push(innerLine)
-          }
-        })
-      }
+  // console.log(`InnerSentences: "${InnerSentences}"`)
+
+  if (InnerSentences && InnerSentences.length > 0) {
+    InnerSentences.forEach((l) => {
+      // console.log(`add sentence to sentences: "${l}"`)
+      sentences.push(l.trim())
+      // let innerLines = l.match(/\r?\n/)
+      // if (innerLines && innerLines.length) {
+      //   innerLines.forEach((il) => {
+      //     let innerLine = il.trim()
+      //     if (innerLine) {
+      //       sentences.push(innerLine)
+      //     }
+      //   })
+      // } else {
+      //   sentences.push(l)
+      // }
     })
+  } else if (pureText.trim()) {
+    sentences = [pureText]
   }
-  // const diffText1 = findDiff(sentences.join(' '), pureText)
-  // if (diffText1) sentences.push(diffText1)
-  // }
-  return sentences
+  let pureTextDiff = pureText
+  for (let i = 0; i < sentences.length; i++) {
+    pureTextDiff = getDifference(sentences[i], pureTextDiff)
+    // if (pureTextDiff) {
+    //   console.log(`pureTextDiff: "${pureTextDiff}"`)
+    //   // sentences.push(compare.trim())
+    // }
+  }
+  // console.log(`pureTextDiff end: "${pureTextDiff}"`)
+
+  // if (sentences.length > 0) return sentences
+  if (pureTextDiff.trim()) sentences.push(pureTextDiff)
+
+  let returnSentences = []
+  for (let i = 0; i < sentences.length; i++) {
+    const trimmmed = sentences[i].trim()
+    if (trimmmed) returnSentences.push(trimmmed)
+  }
+  return returnSentences
 }
 
 const contentEnable = async () => {
   interactiveWords()
   const textNodes = getPageContent()
   if (!textNodes) return
-  console.log('textNodes', textNodes)
+  // console.log('textNodes', textNodes)
+  let sentenceId = 0
+  let wordIdStart = 0
+  let delay = 0
   for (let j = 0; j < textNodes.length; j++) {
-    const node = textNodes[j]
+    const node = textNodes[j].parent
     const sentences = getAllPageSentences(node)
-    console.log('sentences', sentences)
-    const instance = new Mark($(node)[0])
+
+    // console.log('node', node)
+    // console.log('mark sentences', sentences)
+    // console.log('in node', node)
+    // console.log(`node text: "${$(node).text()}"`)
+    // return
+
     if (sentences.length) {
-      let wordIdStart = 0
-      let s
-      let sentenceId
       for (let i = 0; i < sentences.length; i++) {
-        s = sentences[i]
-        sentenceId = i
-        let delay = 0
+        sentenceId = sentenceId + 1
         try {
           // console.log('sentence', s)
-          await wrapSentences(s, instance, sentenceId, delay)
+          // await wrapSentences(s, instance, sentenceId, delay)
+          await wrapSentences(sentences[i], node, sentenceId, delay)
           let sentenceNode = $(
             `.sentenceHighlight[data-sentence-id=${sentenceId}]`
           )
-          let bgColor = $(sentenceNode).css('backgroundColor')
-          let color = $(sentenceNode).css('color')
-          $(sentenceNode).css('backgroundColor', '#d53f8c')
-          $(sentenceNode).css('color', '#FFFFFF')
-          setTimeout(() => {
-            $(sentenceNode).css('backgroundColor', bgColor)
-            $(sentenceNode).css('color', color)
-          }, 500)
+          // let bgColor = $(sentenceNode).css('backgroundColor')
+          // let color = $(sentenceNode).css('color')
+          // $(sentenceNode).css('backgroundColor', '#d53f8c')
+          // $(sentenceNode).css('color', '#FFFFFF')
+          // setTimeout(() => {
+          //   $(sentenceNode).css('backgroundColor', bgColor)
+          //   $(sentenceNode).css('color', color)
+          // }, 500)
           try {
             let [countWords, wordIds] = await wrapWords(
               sentenceNode,
