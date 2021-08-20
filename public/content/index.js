@@ -1,3 +1,22 @@
+// console.log('Vue exists?', window.Vue)
+// mount vue
+// const div = document.createElement('div')
+// document.body.insertBefore(div, document.body.firstChild)
+
+// const App = {
+//   data() {
+//     return {
+//       name: 'Gregg',
+//     }
+//   },
+//   created() {
+//     console.log('content script vue')
+//   },
+//   template: `<h1>Hello {{ name }}</h1>`,
+// }
+
+// createApp(App).mount(div)
+
 const SERVER_URL = 'http://192.168.1.11:6565'
 
 let popupTimeout = null
@@ -273,7 +292,7 @@ const mergeSelectedWords = (evt) => {
         if (searchText) {
           if (shouldSpeakWords) {
             //speak
-            console.log('speak', searchText)
+            // console.log('speak', searchText)
             text2Speech(searchText, currentTabLanguage)
           }
           $(`span[data-range-id=${rangeID}]`)
@@ -411,12 +430,7 @@ const interactiveWords = () => {
         const isRangedTranslation = Boolean(
           $(target).closest('.range-translation').length
         )
-        console.log(
-          'speak single?',
-          isRangedTranslation,
-          $(target).closest('.range-translation'),
-          target
-        )
+
         if (!isRangedTranslation)
           text2Speech(wordClickedText, currentTabLanguage)
       }, 500)
@@ -427,12 +441,6 @@ const interactiveWords = () => {
       $(`span[data-word-id=${wordClickedId}]`)
         .find('.translation')
         .html(spinnerAnimation())
-      console.log(
-        'wordhighlight click fetch',
-        wordClickedText,
-        currentTabLanguage,
-        userLanguage
-      )
       fetch(`${SERVER_URL}/translate`, {
         method: 'POST',
         body: JSON.stringify({
@@ -479,30 +487,33 @@ const findSentence = (evt) => {
 }
 
 const getTextNodes = (el) => {
+  const t0 = performance.now()
   const iterator = document.createNodeIterator(el, NodeFilter.SHOW_TEXT)
   const textNodes = []
-  let currentTextNode
+  let currentTextNode, parent, node
+
   while ((currentTextNode = iterator.nextNode())) {
-    if (
-      !$(currentTextNode).parent().is('script,style,stylescript') &&
-      $(currentTextNode).text().replace(/\s+/g, '').trim()
-    ) {
-      // parent can not already have been added
-      if (
-        textNodes.filter(
-          (t) =>
-            $(t.parent)[0] === $(currentTextNode).parent()[0] ||
-            $(t.node)[0] === $(currentTextNode)[0]
-        ).length === 0
-      ) {
-        textNodes.push({
-          node: currentTextNode,
-          nodeType: $(currentTextNode).parent().nodeName,
-          parent: $(currentTextNode).parent(),
-        })
+    node = $(currentTextNode)
+    parent = node.parent()
+    if (!parent.is('script,style,stylescript')) {
+      if (node.text().replace(/\s+/g, '').trim()) {
+        // parent cannot already have been added to nodes
+        if (
+          textNodes.filter(
+            (t) => t.parent[0] === parent[0] || t.node[0] === node[0]
+          ).length === 0
+        ) {
+          textNodes.push({
+            node: currentTextNode,
+            nodeType: parent.nodeName,
+            parent: parent,
+          })
+        }
       }
     }
   }
+  const t1 = performance.now()
+  console.log('Call to doSomething took ' + (t1 - t0) + ' milliseconds.')
   return textNodes
 }
 
@@ -677,8 +688,8 @@ const contentEnable = async () => {
             for (let k = 0; k < createdSentences.length; k++) {
               const cs = createdSentences[k]
               let sentenceNode = $(`.sentenceHighlight[data-sentence-id=${cs}]`)
-              console.log('sentencenode', sentenceNode)
-              console.log('sentencenode id', cs)
+              // console.log('sentencenode', sentenceNode)
+              // console.log('sentencenode id', cs)
               // let bgColor = $(sentenceNode).css('backgroundColor')
               // let color = $(sentenceNode).css('color')
               // $(sentenceNode).css('backgroundColor', '#d53f8c')

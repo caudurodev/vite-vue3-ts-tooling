@@ -73,10 +73,11 @@
   export default defineComponent({
     name: 'App',
     components: { Toggle },
-    setup() {
+    setup: () => {
       const currentTabLanguage = ref('')
       const isSpeakingWords = ref(false)
       const isSpeakingSentences = ref(false)
+      const speechVoices = ref<[]>([])
       const languageOptions = ref<Language[]>([
         { label: 'English', code: 'en' },
         { label: 'Deutsch', code: 'de' },
@@ -120,6 +121,13 @@
           currentTabLanguage: currentTabLanguage.value,
         })
       }
+      const getVoices = async () => {
+        const synth = await window.speechSynthesis
+        const voices = await synth.getVoices()
+        console.log('voices', voices)
+        return voices
+      }
+      getVoices()
       return {
         activateTranslations,
         currentTabLanguage,
@@ -129,6 +137,7 @@
         isSpeakingSentences,
         languageOptions,
         setLanguagePairs,
+        speechVoices,
         userLanguage,
       }
     },
