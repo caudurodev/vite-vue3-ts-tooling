@@ -57,9 +57,13 @@
         text-white
         hover:bg-yellow-700
       "
+      :disabled="activationSuccess"
       @click="activateTranslations()"
     >
-      Activate on Current Tab
+      <span v-if="!isActivatingOnPage">Activate on Current Tab</span>
+      <span v-if="isActivatingOnPage">Activating...</span>
+      <span v-if="activationSuccess">Success!</span>
+      <span v-if="!activationSuccess">Error</span>
     </button>
   </div>
 </template>
@@ -75,6 +79,8 @@
     components: { Toggle },
     setup: () => {
       const currentTabLanguage = ref('')
+      const isActivatingOnPage = ref(false)
+      const activationSuccess = ref(false)
       const isSpeakingWords = ref(false)
       const isSpeakingSentences = ref(false)
       const speechVoices = ref<[]>([])
@@ -82,9 +88,9 @@
         { label: 'English', code: 'en' },
         { label: 'Deutsch', code: 'de' },
         { label: 'Português', code: 'pt' },
-        { label: 'Italian', code: 'it' },
-        { label: 'French', code: 'fr' },
-        { label: 'Spanish', code: 'es' },
+        { label: 'Italiano', code: 'it' },
+        { label: 'Français', code: 'fr' },
+        { label: 'Español', code: 'es' },
       ])
       const browserLanguage = languageOptions.value.filter((l) =>
         navigator.language.includes(l.code)
@@ -93,6 +99,8 @@
         browserLanguage.length ? browserLanguage[0].code : false
       )
       const activateTranslations = async () => {
+        isActivatingOnPage.value = true
+        activationSuccess.value = false
         await browser.runtime.sendMessage({
           action: 'popup.translations.activate',
         })
@@ -100,6 +108,10 @@
       browser.runtime.onMessage.addListener(async (request) => {
         if (request.action === 'popup.language.detect') {
           currentTabLanguage.value = request.lang.language
+        }
+        if (request.action === 'activate.finished') {
+          isActivatingOnPage.value = false
+          activationSuccess.value = request.result
         }
       })
       const detectTabLanguage = async () => {
@@ -130,9 +142,11 @@
       getVoices()
       return {
         activateTranslations,
+        activationSuccess,
         currentTabLanguage,
         browser,
         detectTabLanguage,
+        isActivatingOnPage,
         isSpeakingWords,
         isSpeakingSentences,
         languageOptions,

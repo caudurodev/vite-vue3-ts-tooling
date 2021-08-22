@@ -1,0 +1,8 @@
+flask
+redis
+requests
+spacy
+dict.cc.py
+textblob
+py-openthesaurus
+wiktionaryparser

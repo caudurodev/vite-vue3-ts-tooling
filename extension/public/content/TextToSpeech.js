@@ -13,10 +13,10 @@ const getVoices = () => {
 }
 
 const getLangVoices = async (langSpeak) => {
-  let voices = await getVoices()
+  const allVoices = await getVoices()
   if (langSpeak === 'de') langSpeak = 'de-DE'
-  if (voices.length > 0) {
-    const voicesMatches = voices.filter((voice) =>
+  if (allVoices.length > 0) {
+    const voicesMatches = allVoices.filter((voice) =>
       voice.lang.toLowerCase().includes(langSpeak.toLowerCase())
     )
     if (voicesMatches && voicesMatches.length > 0) {

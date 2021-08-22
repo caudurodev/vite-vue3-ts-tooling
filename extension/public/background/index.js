@@ -22,8 +22,13 @@ browser.runtime.onMessage.addListener(async (request) => {
       lang: request.detectLanguageResult,
     })
   }
+  if (request.action === 'bg.activate.finished') {
+    browser.runtime.sendMessage({
+      action: 'activate.finished',
+      result: request.result,
+    })
+  }
   if (request.action === 'popup.language.set') {
-    console.log('br popup.language.set', request)
     await sendMessageToActiveTab({
       action: 'language.set',
       userLanguage: request.userLanguage,
