@@ -1,99 +1,35 @@
-// console.log('Vue exists?', window.Vue)
-// mount vue
-const div = document.createElement('div')
-document.body.insertBefore(div, document.body.firstChild)
-div.setAttribute('id', 'langcontentscript')
-
-// const App = {
-//   data() {
-//     return {
-//       name: 'Gregg',
-//     }
-//   },
-//   created() {
-//     console.log('content script vue')
-//   },
-//   template: `<h1>Hello {{ name }}</h1>`,
-// }
-
-// createApp(App).mount(div)
+import browser from 'webextension-polyfill'
+import $ from 'jquery'
+import Mark from 'mark.js'
+import text2Speech from '../logic/TextToSpeech'
 
 const SERVER_URL = 'http://192.168.1.11:6565'
 
 let popupTimeout = null
-let sentencePopupTimeout = null
-let lastSentence = { src: null, dest: null, id: null }
-let isEnabled = false
-let detectLanguageResult = null
-let userLanguage,
-  currentTabLanguage = null
-let shouldSpeakWords = true
-let shouldSpeakSentences = true
+const sentencePopupTimeout = null
+const lastSentence = { src: null, dest: null, id: null }
+// const isEnabled = false
+// const detectLanguageResult = null
+let userLanguage
+const currentTabLanguage = null
+const shouldSpeakWords = true
+const shouldSpeakSentences = true
 
-const languageOptions = [
-  { label: 'English', code: 'en' },
-  { label: 'Deutsch', code: 'de' },
-  { label: 'Português', code: 'pt' },
-  { label: 'Italiano', code: 'it' },
-  { label: 'Français', code: 'fr' },
-  { label: 'Español', code: 'es' },
-]
-
-browser.runtime.onMessage.addListener(async (request) => {
-  if (request.action === 'translations.activate') {
-    if (isEnabled) {
-      console.log('already enabled on page')
-    } else {
-      isEnabled = true
-      console.log('enabling translations...')
-      await setLanguageDefaults()
-      contentEnable()
-    }
-  } else if (request.action === 'language.detect') {
-    if (isEnabled) {
-      console.log('already detected language')
-    } else {
-      detectLanguageResult = await detectLanguage()
-    }
-    browser.runtime.sendMessage({
-      action: 'bg.language.detect',
-      detectLanguageResult,
-    })
-    return Promise.resolve(detectLanguageResult)
-  } else if (request.action === 'language.set') {
-    console.log('content language.set', request)
-    userLanguage = request.userLanguage
-    currentTabLanguage = request.currentTabLanguage
-    console.log('set languages:', userLanguage, currentTabLanguage)
-  }
-  console.log('content script start addListener end')
-  return Promise.resolve()
-})
-
-const setLanguageDefaults = async () => {
-  detectLanguageResult = await detectLanguage()
-  currentTabLanguage = detectLanguageResult.language
-
-  const browserLanguage = languageOptions.filter((l) =>
-    navigator.language.includes(l.code)
-  )
-  userLanguage = browserLanguage.length ? browserLanguage[0].code : false
-}
-
-function findDiff(str1, str2) {
-  let diff = ''
-  str2.split('').forEach(function (val, i) {
-    if (val != str1.charAt(i)) diff += val
-  })
-  return diff
-}
+// const languageOptions = [
+//   { label: 'English', code: 'en' },
+//   { label: 'Deutsch', code: 'de' },
+//   { label: 'Português', code: 'pt' },
+//   { label: 'Italiano', code: 'it' },
+//   { label: 'Français', code: 'fr' },
+//   { label: 'Español', code: 'es' },
+// ]
 
 function uniqueID() {
   return Math.floor(Math.random() * Date.now())
 }
 
-const wrapSentences = async (s, node, sentenceId = 0, delay = 0) => {
-  let createdSentences = []
+const wrapSentences = async(s, node, sentenceId = 0, delay = 0) => {
+  const createdSentences = []
   // console.log('try to wrap sentence', s, node)
   return new Promise((resolve, reject) => {
     try {
@@ -144,10 +80,12 @@ const wrapSentences = async (s, node, sentenceId = 0, delay = 0) => {
         setTimeout(() => {
           resolve(createdSentences)
         }, delay)
-      } else {
+      }
+      else {
         resolve(createdSentences)
       }
-    } catch (e) {
+    }
+    catch (e) {
       console.log('mark sentence error', e)
       reject(e)
     }
@@ -158,9 +96,9 @@ const wrapWords = (node, wordIdStart = 0) => {
   return new Promise((resolve) => {
     const instance = new Mark($(node)[0])
     let countWords = wordIdStart
-    let wordIds = []
+    const wordIds = []
     /* eslint-disable no-useless-escape */
-    instance.markRegExp(/[\w\u00C0-\u00ff\\.\-\,\?\!\:\;\"\'\“\„]+/g, {
+    instance.markRegExp(/[\w\u00C0-\u00FF\\.\-\,\?\!\:\;\"\'\“\„]+/g, {
       element: 'span',
       exclude: [
         '.mainEasyReadWindow *',
@@ -189,7 +127,7 @@ const wrapWords = (node, wordIdStart = 0) => {
 }
 
 const spinnerAnimation = () => {
-  return `...`
+  return '...'
 }
 
 const rangeify = (activeWords) => {
@@ -198,8 +136,8 @@ const rangeify = (activeWords) => {
   for (let i = 0; i < activeWords.length; i++) {
     run.push(activeWords[i].id)
     if (
-      i + 1 >= activeWords.length ||
-      activeWords[i + 1].id - activeWords[i].id > 1
+      i + 1 >= activeWords.length
+      || activeWords[i + 1].id - activeWords[i].id > 1
     ) {
       res.push(run.length > 1 ? [run[0], run.pop()] : run)
       run = []
@@ -218,7 +156,7 @@ const getActiveWords = (sentenceEl) => {
         active: !!$(el).hasClass('active'),
       })
     })
-  return sentenceArray.filter((w) => w.active)
+  return sentenceArray.filter(w => w.active)
 }
 
 const mergeSelectedWords = (evt) => {
@@ -238,21 +176,20 @@ const mergeSelectedWords = (evt) => {
         for (let i = Number(r[0]); i < Number(r[1]) + 1; i++) {
           const el = $(`span[data-word-id=${i}]`)
           wordElements.push(el)
-          if (el.length) {
-            searchText += $(el).find('.original').text() + ' '
-          }
+          if (el.length)
+            searchText += `${$(el).find('.original').text()} `
         }
         $(`span[data-word-id=${Number(r[0])}]`).before(
           `<span data-range-id="${rangeID}" class="wordRangeHighlight">
                                 <span class="range-translation"></span>
                                 <span class="range-original">
                                 ${wordElements
-                                  .map(
-                                    (e) => $(e).clone().prop('outerHTML') + ' '
-                                  )
-                                  .join('')}
+    .map(
+      e => `${$(e).clone().prop('outerHTML')} `,
+    )
+    .join('')}
                                   </span>
-                            </span>`
+                            </span>`,
         )
         wordElements.forEach((el) => {
           $(el).remove()
@@ -260,7 +197,7 @@ const mergeSelectedWords = (evt) => {
         searchText = searchText.trim()
         if (searchText) {
           if (shouldSpeakWords) {
-            //speak
+            // speak
             // console.log('speak', searchText)
             text2Speech(searchText, currentTabLanguage)
           }
@@ -277,7 +214,7 @@ const mergeSelectedWords = (evt) => {
             }),
             headers: { 'Content-Type': 'application/json' },
           })
-            .then((response) => response.json())
+            .then(response => response.json())
             .then((data) => {
               $(`span[data-range-id=${rangeID}]`)
                 .find('.range-translation')
@@ -306,14 +243,15 @@ const interactiveWords = () => {
     clearTimeout(popupTimeout)
     if (
       $(
-        '.wordHighlight .translation, .translateSentenceButton, #easyReadTooltipSentence, #easyReadTooltipWord'
-      ).is(evt.target) ||
-      $(evt.target).closest(
-        '.wordHighlight .translation, .translateSentenceButton, #easyReadTooltipSentence, #easyReadTooltipWord'
+        '.wordHighlight .translation, .translateSentenceButton, #easyReadTooltipSentence, #easyReadTooltipWord',
+      ).is(evt.target)
+      || $(evt.target).closest(
+        '.wordHighlight .translation, .translateSentenceButton, #easyReadTooltipSentence, #easyReadTooltipWord',
       ).length
     ) {
       clearTimeout(popupTimeout)
-    } else {
+    }
+    else {
       $(document).find('.originalSentence').removeClass('hover')
       popupTimeout = setTimeout(() => {
         $('#easyReadTooltipSentence').hide()
@@ -340,11 +278,11 @@ const interactiveWords = () => {
       .find('.originalSentence')
       .find('.wordHighlight .original')
       .each((i, e) => {
-        sentenceText += $(e).text() + ' '
+        sentenceText += `${$(e).text()} `
       })
 
     if (shouldSpeakSentences) {
-      //speak
+      // speak
 
       text2Speech(sentenceText, currentTabLanguage)
     }
@@ -392,15 +330,15 @@ const interactiveWords = () => {
     console.log('wordClickedText', wordClickedText)
 
     if (
-      shouldSpeakWords &&
-      $(evt.target).closest('.range-translation').length === 0
+      shouldSpeakWords
+      && $(evt.target).closest('.range-translation').length === 0
     ) {
-      //speak
+      // speak
       // timeout to wait for dom to be updated
       const target = evt.target
       setTimeout(() => {
         const isRangedTranslation = Boolean(
-          $(target).closest('.range-translation').length
+          $(target).closest('.range-translation').length,
         )
 
         if (!isRangedTranslation)
@@ -422,7 +360,7 @@ const interactiveWords = () => {
         }),
         headers: { 'Content-Type': 'application/json' },
       })
-        .then((response) => response.json())
+        .then(response => response.json())
         .then((data) => {
           if (data.translatedText) {
             const wordContent = linkHref
@@ -451,7 +389,7 @@ const findSentence = (evt) => {
   let sentenceText = ''
   if (sentenceElements?.length > 0) {
     $(sentenceElements).each((i, e) => {
-      sentenceText += $(e).text() + ' '
+      sentenceText += `${$(e).text()} `
     })
     lastSentence.src = sentenceText
     lastSentence.id = Number($(sentenceEl).attr('data-sentence-id'))
@@ -472,20 +410,20 @@ const getTextNodes = (el) => {
         // parent cannot already have been added to nodes
         if (
           textNodes.filter(
-            (t) => t.parent[0] === parent[0] || t.node[0] === node[0]
+            t => t.parent[0] === parent[0] || t.node[0] === node[0],
           ).length === 0
         ) {
           textNodes.push({
             node: currentTextNode,
             nodeType: parent.nodeName,
-            parent: parent,
+            parent,
           })
         }
       }
     }
   }
   const t1 = performance.now()
-  console.log('Call to doSomething took ' + (t1 - t0) + ' milliseconds.')
+  console.log(`Call to doSomething took ${t1 - t0} milliseconds.`)
   return textNodes
 }
 
@@ -497,77 +435,82 @@ const getPageContent = () => {
     const textContent = $(node).text()
     const stripped = textContent.replace(/\s+/g, '')
     const isVisible = $(node)[0].offsetParent !== null
-    if (stripped && isVisible) {
+    if (stripped && isVisible)
       return true
-    }
+
     return false
   })
 
   // remove nested nodes
-  textNodes = textNodes.filter((n1) =>
-    textNodes.filter((n2) => !$(n2).find(n1).length)
+  textNodes = textNodes.filter(n1 =>
+    textNodes.filter(n2 => !$(n2).find(n1).length),
   )
 
   return textNodes
 }
 
-const detectLanguage = async () => {
-  const pageText = document.body.innerText
-  let detectLanguage = null
-  if (browser) {
-    detectLanguage = await browser.i18n.detectLanguage(pageText)
-  } else if (chrome) {
-    await chrome.i18n.detectLanguage(pageText, (result) => {
-      detectLanguage = result
-    })
-  } else {
-    console.log('browser detectLanguage failed', browser, chrome)
-  }
-  console.log('detectLanguage', detectLanguage)
-  if (
-    detectLanguage &&
-    detectLanguage.isReliable &&
-    detectLanguage.languages.length
-  ) {
-    return detectLanguage.languages[0]
-  }
+// const detectLanguage = async() => {
+//   const pageText = document.body.innerText
+//   let detectLanguage = null
+//   if (browser) {
+//     detectLanguage = await browser.i18n.detectLanguage(pageText)
+//   }
+//   else if (chrome) {
+//     await chrome.i18n.detectLanguage(pageText, (result) => {
+//       detectLanguage = result
+//     })
+//   }
+//   else {
+//     console.log('browser detectLanguage failed', browser, chrome)
+//   }
+//   console.log('detectLanguage', detectLanguage)
+//   if (
+//     detectLanguage
+//     && detectLanguage.isReliable
+//     && detectLanguage.languages.length
+//   )
+//     return detectLanguage.languages[0]
 
-  console.log('browser detectLanguage failed using API', pageText)
-  return fetch(`${SERVER_URL}/detect`, {
-    method: 'POST',
-    body: JSON.stringify({
-      q: pageText,
-    }),
-    headers: { 'Content-Type': 'application/json' },
-  })
-    .then((response) => {
-      return response.json()
-    })
-    .then((data) => {
-      if (data && data.length) {
-        console.log('detect response', data)
-        return data[0]
-      }
-    })
-    .catch((e) => {
-      console.log('detect error ', e)
-      return 'error'
-    })
-}
+//   console.log('browser detectLanguage failed using API', pageText)
+//   return fetch(`${SERVER_URL}/detect`, {
+//     method: 'POST',
+//     body: JSON.stringify({
+//       q: pageText,
+//     }),
+//     headers: { 'Content-Type': 'application/json' },
+//   })
+//     .then((response) => {
+//       return response.json()
+//     })
+//     .then((data) => {
+//       if (data && data.length) {
+//         console.log('detect response', data)
+//         return data[0]
+//       }
+//     })
+//     .catch((e) => {
+//       console.log('detect error ', e)
+//       return 'error'
+//     })
+// }
 
-// String.prototype.trimLeft = function (charlist) {
-//   if (charlist === undefined) charlist = 's'
+// const setLanguageDefaults = async() => {
+//   detectLanguageResult = await detectLanguage()
+//   currentTabLanguage = detectLanguageResult.language
 
-//   return this.replace(new RegExp('^[' + charlist + ']+'), '')
+//   const browserLanguage = languageOptions.filter(l =>
+//     navigator.language.includes(l.code),
+//   )
+//   userLanguage = browserLanguage.length ? browserLanguage[0].code : false
 // }
 
 function getDifference(a, b) {
-  var i = 0
-  var j = 0
-  var result = ''
+  let i = 0
+  let j = 0
+  let result = ''
 
   while (j < b.length) {
-    if (a[i] != b[j] || i == a.length) result += b[j]
+    if (a[i] !== b[j] || i === a.length) result += b[j]
     else i++
     j++
   }
@@ -578,24 +521,25 @@ const getAllPageSentences = (el) => {
   let sentences = []
   const pureText = $(el).text().replace(/\s\s+/g, ' ').trim()
 
-  const regex =
-    /["’„]?[A-Z][^.?!:;]+((?![.?!][’"'"`’”„]?\s["’]?[A-Z][^.?!]).)+[.?!:;’"'"`’”„“\d$]+/g
+  const regex
+    = /["’„]?[A-Z][^.?!:;]+((?![.?!][’"'"`’”„]?\s["’]?[A-Z][^.?!]).)+[.?!:;’"'"`’”„“\d$]+/g
 
   const InnerSentences = pureText.match(regex)
   if (InnerSentences && InnerSentences.length > 0) {
     InnerSentences.forEach((l) => {
       sentences.push(l.trim())
     })
-  } else if (pureText.trim()) {
+  }
+  else if (pureText.trim()) {
     sentences = [pureText]
   }
   let pureTextDiff = pureText
-  for (let i = 0; i < sentences.length; i++) {
+  for (let i = 0; i < sentences.length; i++)
     pureTextDiff = getDifference(sentences[i], pureTextDiff)
-  }
+
   if (pureTextDiff.trim()) sentences.push(pureTextDiff)
 
-  let returnSentences = []
+  const returnSentences = []
   for (let i = 0; i < sentences.length; i++) {
     const trimmmed = sentences[i].trim()
     if (trimmmed) returnSentences.push(trimmmed)
@@ -603,7 +547,8 @@ const getAllPageSentences = (el) => {
   return returnSentences
 }
 
-const contentEnable = async () => {
+const contentEnable = async() => {
+  console.log('contentEnable enabling....')
   interactiveWords()
   const textNodes = getPageContent()
   if (!textNodes || !textNodes.length) {
@@ -616,8 +561,8 @@ const contentEnable = async () => {
 
   let sentenceId = 0
   let wordIdStart = 0
-  let delay = 0
-  let skipSentence = false
+  const delay = 0
+  const skipSentence = false
   for (let j = 0; j < textNodes.length; j++) {
     const node = textNodes[j].parent
     const sentences = getAllPageSentences(node)
@@ -631,12 +576,12 @@ const contentEnable = async () => {
             sentences[i],
             node,
             sentenceId,
-            delay
+            delay,
           )
           if (createdSentences.length > 0) {
             for (let k = 0; k < createdSentences.length; k++) {
               const cs = createdSentences[k]
-              let sentenceNode = $(`.sentenceHighlight[data-sentence-id=${cs}]`)
+              const sentenceNode = $(`.sentenceHighlight[data-sentence-id=${cs}]`)
               // console.log('sentencenode', sentenceNode)
               // console.log('sentencenode id', cs)
               // let bgColor = $(sentenceNode).css('backgroundColor')
@@ -648,18 +593,20 @@ const contentEnable = async () => {
               //   $(sentenceNode).css('color', color)
               // }, 500)
               try {
-                let [countWords, wordIds] = await wrapWords(
+                const [countWords, wordIds] = await wrapWords(
                   sentenceNode,
-                  wordIdStart
+                  wordIdStart,
                 )
                 wordIds
                 wordIdStart = countWords
-              } catch (e) {
+              }
+              catch (e) {
                 console.log('error parsing word', e)
               }
             }
           }
-        } catch (e) {
+        }
+        catch (e) {
           console.log('error parsing sentence', e)
         }
       }
@@ -670,3 +617,40 @@ const contentEnable = async () => {
     result: true,
   })
 }
+
+browser.runtime.onMessage.addListener(async(request) => {
+  if (request.action === 'translations.activate') {
+    if (isEnabled) {
+      console.log('already enabled on page')
+    }
+    else {
+      isEnabled = true
+      console.log('enabling translations...')
+      await setLanguageDefaults()
+      contentEnable()
+    }
+  }
+  else if (request.action === 'language.detect') {
+    if (isEnabled)
+      console.log('already detected language')
+
+    else
+      detectLanguageResult = await detectLanguage()
+
+    browser.runtime.sendMessage({
+      action: 'bg.language.detect',
+      detectLanguageResult,
+    })
+    return Promise.resolve(detectLanguageResult)
+  }
+  else if (request.action === 'language.set') {
+    console.log('content language.set', request)
+    userLanguage = request.userLanguage
+    currentTabLanguage = request.currentTabLanguage
+    console.log('set languages:', userLanguage, currentTabLanguage)
+  }
+  console.log('content script start addListener end')
+  return Promise.resolve()
+})
+
+export default contentEnable
