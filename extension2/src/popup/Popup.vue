@@ -9,9 +9,7 @@
     <button class="btn mt-2" @click="openOptionsPage">
       Open Options33
     </button>
-    <!-- <div class="mt-2">
-      <span class="opacity-50">Storage:</span> {{ storageDemo }}
-    </div> -->
+
     <div class="container mx-auto p-4 h-screen pop">
       <h3>Your Language</h3>
       <select
@@ -83,14 +81,11 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, watch } from 'vue'
 import browser from 'webextension-polyfill'
-// import { sendMessage } from 'webext-bridge'
 import Toggle from '../components/Toggle.vue'
 import Language from '../types/Language'
 import getLanguageDefaults from '../logic/detectLanguage'
-
-// import { storageDemo } from '~/logic/storage'
 
 const openOptionsPage = () => {
   browser.runtime.openOptionsPage()

@@ -56,6 +56,7 @@ export async function getManifest() {
     // !!works only in chromium
     delete manifest.content_scripts
     manifest.permissions?.push('webNavigation')
+    manifest.permissions?.push('storage')
 
     // this is required on dev for Vite script to load
     manifest.content_security_policy = `script-src \'self\' http://localhost:${port}; object-src \'self\'`

@@ -7,7 +7,7 @@
       transition="opacity duration-300"
       :class="show ? 'opacity-100' : 'opacity-0'"
     >
-      tablang:{{ data.currentTabLanguage }} userlang:{{ data.userLanguage }}
+      tablang:{{ currentTabLanguage }} userlang:{{ userLanguage }} <fa-home /> <mdi:account-box />
     </div>
     <div
       class="flex w-10 h-10 rounded-full shadow cursor-pointer"
@@ -20,51 +20,30 @@
 </template>
 
 <script setup lang="ts">
-import { reactive, ref } from 'vue'
-import { useToggle } from '@vueuse/core'
+import { ref, watch } from 'vue'
+import { useToggle, useLocalStorage } from '@vueuse/core'
 import browser from 'webextension-polyfill'
 import '../styles/content-css.css'
 import 'virtual:windi.css'
-// import { storageDemo } from '../logic/storage'
 import getLanguageDefaults from '../logic/detectLanguage'
 import interactiveWords from './interact'
 import contentEnable from './dom'
 
-const SERVER_URL = 'http://192.168.1.11:6565'
-
-// console.log('content initialized', storageDemo)
-
 const isEnabled = ref(false)
-
-const data = reactive({
-  currentTabLanguage: '',
-  userLanguage: '',
-})
-
-// const currentTabLanguage = ref('')
-// const userLanguage = ref('')
+const currentTabLanguage = ref('')
+const userLanguage = ref('')
 const shouldSpeakWords = ref(false)
 const shouldSpeakSentences = ref(false)
 
 const init = async() => {
-  console.log('init content')
   const defaults = await getLanguageDefaults()
-  console.log('init defaults', defaults)
-  data.currentTabLanguage = defaults.currentTabLanguage
-  data.userLanguage = defaults.userLanguage
-  console.log('init data.currentTabLanguage', data.currentTabLanguage)
-  // currentTabLanguage.value = defaults.currentTabLanguage
-  // userLanguage.value = defaults.userLanguage
-  console.log('????')
+  currentTabLanguage.value = defaults.currentTabLanguage
+  userLanguage.value = defaults.userLanguage
   // update popup with detected languages
-  // console.log('bg.language.detect', currentTabLanguage.value, userLanguage.value)
-  console.log('bg.language.detect', data.currentTabLanguage, data.userLanguage)
   browser.runtime.sendMessage({
     action: 'bg.language.detect',
-    currentTabLanguage: data.currentTabLanguage,
-    userLanguage: data.userLanguage,
-    // currentTabLanguage: currentTabLanguage.value,
-    // userLanguage: userLanguage.value,
+    currentTabLanguage: currentTabLanguage.value,
+    userLanguage: userLanguage.value,
   })
 }
 init()
@@ -76,12 +55,10 @@ browser.runtime.onMessage.addListener(async(request) => {
     }
     else {
       isEnabled.value = true
-      // if (!userLanguage.value) await init()
-      if (data.userLanguage) await init()
-      console.log('enabling dom translations...', data.currentTabLanguage, data.userLanguage)
+      if (!userLanguage.value) await init()
       interactiveWords(
-        data.currentTabLanguage,
-        data.userLanguage,
+        currentTabLanguage.value,
+        userLanguage.value,
         shouldSpeakWords.value,
         shouldSpeakSentences.value,
       )
@@ -89,14 +66,12 @@ browser.runtime.onMessage.addListener(async(request) => {
     }
   }
   if (request.action === 'content.language.set') {
-    console.log('content.language.set', request)
-    // userLanguage.value = request.userLanguage
-    // currentTabLanguage.value = request.currentTabLanguage
-    data.userLanguage = request.userLanguage
-    data.currentTabLanguage = request.currentTabLanguage
+    userLanguage.value = request.userLanguage
+    currentTabLanguage.value = request.currentTabLanguage
+
     interactiveWords(
-      data.currentTabLanguage,
-      data.userLanguage,
+      currentTabLanguage.value,
+      userLanguage.value,
       shouldSpeakWords.value,
       shouldSpeakSentences.value,
     )
@@ -106,10 +81,8 @@ browser.runtime.onMessage.addListener(async(request) => {
 
     browser.runtime.sendMessage({
       action: 'bg.language.detect',
-      // currentTabLanguage: currentTabLanguage.value,
-      // userLanguage: userLanguage.value,
-      currentTabLanguage: data.currentTabLanguage,
-      userLanguage: data.userLanguage,
+      currentTabLanguage: currentTabLanguage.value,
+      userLanguage: userLanguage.value,
     })
   }
 })

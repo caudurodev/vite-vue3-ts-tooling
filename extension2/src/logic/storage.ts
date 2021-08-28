@@ -1,3 +1,7 @@
 import { useLocalStorage } from '@vueuse/core'
 
-export const storageDemo = useLocalStorage('webext-demo', 'Storage Demo', { listenToStorageChanges: true })
+export const currentTabLanguage = useLocalStorage(
+  'currentTabLanguage',
+  'rt',
+  { listenToStorageChanges: true },
+)

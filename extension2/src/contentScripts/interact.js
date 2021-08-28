@@ -53,14 +53,17 @@ const rangeify = (activeWords) => {
   return res
 }
 
-const mergeSelectedWords = (evt) => {
+const mergeSelectedWords = (evt, currentTabLanguage, userLanguage, shouldSpeakWords, shouldSpeakSentences) => {
   const sentenceEl = $(evt.target).closest('.sentenceHighlight')
   const activeWords = getActiveWords(sentenceEl)
   const mergeWords = rangeify(activeWords)
+
+  // TODO only remove ranges that involve current clicked word
   $(sentenceEl).find('.wordRangeHighlight .range-translation').remove()
   $(sentenceEl).find('.wordRangeHighlight .range-original').unwrap()
   $(sentenceEl).find('.wordRangeHighlight').unwrap()
   $(sentenceEl).find('.range-original > span').unwrap()
+
   if (mergeWords.length > 0) {
     mergeWords.forEach((r) => {
       if (r[0] && r[1]) {
@@ -281,7 +284,7 @@ const interactiveWords = (currentTabLanguage, userLanguage, shouldSpeakWords, sh
         })
     }
     findSentence(evt)
-    mergeSelectedWords(evt)
+    mergeSelectedWords(evt, currentTabLanguage, userLanguage, shouldSpeakWords, shouldSpeakSentences)
   })
 }
 

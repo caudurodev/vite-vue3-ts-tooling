@@ -201,7 +201,6 @@ const getAllPageSentences = (el) => {
 }
 
 const contentEnable = async() => {
-  console.log('contentEnable enabling....')
   const textNodes = getPageContent()
   if (!textNodes || !textNodes.length) {
     browser.runtime.sendMessage({
@@ -234,16 +233,6 @@ const contentEnable = async() => {
             for (let k = 0; k < createdSentences.length; k++) {
               const cs = createdSentences[k]
               const sentenceNode = $(`.sentenceHighlight[data-sentence-id=${cs}]`)
-              // console.log('sentencenode', sentenceNode)
-              // console.log('sentencenode id', cs)
-              // let bgColor = $(sentenceNode).css('backgroundColor')
-              // let color = $(sentenceNode).css('color')
-              // $(sentenceNode).css('backgroundColor', '#d53f8c')
-              // $(sentenceNode).css('color', '#FFFFFF')
-              // setTimeout(() => {
-              //   $(sentenceNode).css('backgroundColor', bgColor)
-              //   $(sentenceNode).css('color', color)
-              // }, 500)
               try {
                 const [countWords, wordIds] = await wrapWords(
                   sentenceNode,
