@@ -1,9 +1,7 @@
 const getVoices = () => {
   return new Promise((resolve) => {
     const synth = window.speechSynthesis
-    let id
-
-    id = setInterval(() => {
+    const id = setInterval(() => {
       if (synth.getVoices().length !== 0) {
         resolve(synth.getVoices())
         clearInterval(id)
@@ -13,7 +11,8 @@ const getVoices = () => {
 }
 
 const getLangVoices = async(langSpeak) => {
-  const allVoices = await getVoices()
+  const synth = window.speechSynthesis
+  const allVoices = await synth.getVoices()
   if (langSpeak === 'de') langSpeak = 'de-DE'
   if (allVoices.length > 0) {
     const voicesMatches = allVoices.filter(voice =>

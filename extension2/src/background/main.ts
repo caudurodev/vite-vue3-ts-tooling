@@ -53,39 +53,29 @@ onMessage('get-current-tab', async() => {
   }
 })
 
-//
 const sendMessageToActiveTab = async(message) => {
-  console.log('sendMessageToActiveTab')
   browser.tabs
     .query({ currentWindow: true, active: true })
     .then(([tab]) => {
       if (tab && tab.id)browser.tabs.sendMessage(tab.id, message)
     })
     .catch(e => console.log('message error', e))
-
-  chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
-    const currTab = tabs[0]
-    if (currTab) { // Sanity check
-      console.log('chrome currTab', currTab)
-      chrome.tabs.sendMessage(currTab.id, message)
-    }
-  })
 }
 
 browser.runtime.onMessage.addListener(async(request) => {
-  console.log('onMessage', request)
   if (request.action === 'popup.translations.activate')
     await sendMessageToActiveTab({ action: 'translations.activate' })
 
   if (request.action === 'popup.language.detect') {
     await sendMessageToActiveTab({
-      action: 'language.detect',
+      action: 'content.language.detect',
     })
   }
   if (request.action === 'bg.language.detect') {
+    console.log('bg.language.detect', request)
     browser.runtime.sendMessage({
+      ...request,
       action: 'popup.language.detect',
-      lang: request.detectLanguageResult,
     })
   }
   if (request.action === 'bg.activate.finished') {
@@ -94,9 +84,9 @@ browser.runtime.onMessage.addListener(async(request) => {
       result: request.result,
     })
   }
-  if (request.action === 'popup.language.set') {
+  if (request.action === 'bg.language.set') {
     await sendMessageToActiveTab({
-      action: 'language.set',
+      action: 'content.language.set',
       userLanguage: request.userLanguage,
       currentTabLanguage: request.currentTabLanguage,
     })

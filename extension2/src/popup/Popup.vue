@@ -85,21 +85,18 @@
 <script setup lang="ts">
 import { ref } from 'vue'
 import browser from 'webextension-polyfill'
-import { sendMessage } from 'webext-bridge'
+// import { sendMessage } from 'webext-bridge'
 import Toggle from '../components/Toggle.vue'
+import Language from '../types/Language'
+import getLanguageDefaults from '../logic/detectLanguage'
 
 // import { storageDemo } from '~/logic/storage'
 
-function openOptionsPage() {
+const openOptionsPage = () => {
   browser.runtime.openOptionsPage()
 }
 
 const currentTabLanguage = ref('')
-const isActivatingOnPage = ref(false)
-const activationSuccess = ref(false)
-const isSpeakingWords = ref(false)
-const isSpeakingSentences = ref(false)
-const speechVoices = ref<[]>([])
 const languageOptions = ref<Language[]>([
   { label: 'English', code: 'en' },
   { label: 'Deutsch', code: 'de' },
@@ -114,6 +111,14 @@ const browserLanguage = languageOptions.value.filter(l =>
 const userLanguage = ref(
   browserLanguage.length ? browserLanguage[0].code : false,
 )
+const isActivatingOnPage = ref(false)
+const activationSuccess = ref(false)
+const isSpeakingWords = ref(false)
+const isSpeakingSentences = ref(false)
+const speechVoices = ref<[]>([])
+const shouldSpeakWords = ref(false)
+const shouldSpeakSentences = ref(false)
+
 const activateTranslations = async() => {
   console.log('activateTranslations clicked')
   isActivatingOnPage.value = true
@@ -122,47 +127,42 @@ const activateTranslations = async() => {
     action: 'popup.translations.activate',
   })
 }
+
 browser.runtime.onMessage.addListener(async(request) => {
-  if (request.action === 'popup.language.detect')
-    currentTabLanguage.value = request.lang.language
+  if (request.action === 'popup.language.detect') {
+    console.log('popup.language.detect', request)
+    currentTabLanguage.value = request.currentTabLanguage
+    userLanguage.value = request.userLanguage
+  }
 
   if (request.action === 'activate.finished') {
     isActivatingOnPage.value = false
     activationSuccess.value = request.result
   }
 })
-function onUpdatedListener(tabId, changeInfo, tab) {
-  chrome.tabs.get(tabId.tabId, (tab) => {
-    console.log(`New active tab: ${tab.id}`)
-  })
-}
-// Subscribe to tab events
-chrome.tabs.onActivated.addListener(onUpdatedListener)
-const detectTabLanguage = async() => {
-  try {
-    const response = await browser.runtime.sendMessage({
-      action: 'popup.language.detect',
-    })
-    console.log('popup.language.detect response', response)
-    // currentTabLanguage.value
-  }
-  catch (e) {
-    console.log('error', e)
-  }
-}
-detectTabLanguage()
+
 const setLanguagePairs = async() => {
+  console.log('setLanguagePairs', userLanguage.value,
+    currentTabLanguage.value)
   await browser.runtime.sendMessage({
-    action: 'popup.language.set',
+    action: 'bg.language.set',
     userLanguage: userLanguage.value,
     currentTabLanguage: currentTabLanguage.value,
   })
 }
+
 const getVoices = async() => {
   const synth = await window.speechSynthesis
   const voices = await synth.getVoices()
-  console.log('voices', voices)
   return voices
 }
-getVoices()
+
+const init = async() => {
+  await browser.runtime.sendMessage({
+    action: 'popup.language.detect',
+  })
+  getVoices()
+}
+init()
+
 </script>
