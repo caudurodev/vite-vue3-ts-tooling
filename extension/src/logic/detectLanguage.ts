@@ -1,5 +1,6 @@
 import browser from 'webextension-polyfill'
-const SERVER_URL = 'http://192.168.1.11:6565'
+// const SERVER_URL = 'http://192.168.1.11:6565'
+const SERVER_URL = 'https://translate.cauduro.dev'
 const languageOptions = [
   { label: 'English', code: 'en' },
   { label: 'Deutsch', code: 'de' },
