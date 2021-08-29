@@ -28,6 +28,7 @@ services:
       - ./nginx/certbot/www:/var/www/certbot
     depends_on:
       - certbot
+      - libretranslate
     networks:
       - flat-network
       
@@ -35,9 +36,7 @@ services:
     image: libretranslate/libretranslate
     restart: always
     # env:
-    #   - LT_LOAD_ONLY=it,en
-    depends_on:
-      - nginx
+    #   - LT_LOAD_ONLY=it,en,es,de,fr,pt
     ports:
       - 5000:5000
     networks:
