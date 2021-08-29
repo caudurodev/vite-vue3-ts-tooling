@@ -21,6 +21,6 @@ server {
     ssl_dhparam /etc/letsencrypt/ssl-dhparams.pem;
     
     location / {
-        proxy_pass http://translate.cauduro.dev; #for demo purposes
+        proxy_pass http://libretranslate:5000; #for demo purposes
     }
 }
