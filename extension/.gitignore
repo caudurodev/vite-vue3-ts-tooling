@@ -1,4 +1,14 @@
-node_modules
 .DS_Store
-dist
+.idea/
+.vite-ssg-dist
+.vite-ssg-temp
+*.crx
 *.local
+*.log
+*.pem
+dist
+dist-ssr
+extension/manifest.json
+node_modules
+src/auto-imports.d.ts
+src/components.d.ts

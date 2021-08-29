@@ -23,20 +23,20 @@
 </template>
 
 <script lang="ts">
-  import { defineComponent } from 'vue'
-  export default defineComponent({
-    props: {
-      modelValue: {
-        type: Boolean,
-        default: false,
-      },
+import { defineComponent } from 'vue'
+export default defineComponent({
+  props: {
+    modelValue: {
+      type: Boolean,
+      default: false,
     },
-    emits: ['update:modelValue'],
-    setup(props, context) {
-      const toggle = () => {
-        context.emit('update:modelValue', !props.modelValue)
-      }
-      return { toggle }
-    },
-  })
+  },
+  emits: ['update:modelValue'],
+  setup(props, context) {
+    const toggle = () => {
+      context.emit('update:modelValue', !props.modelValue)
+    }
+    return { toggle }
+  },
+})
 </script>
