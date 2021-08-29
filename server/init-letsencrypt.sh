@@ -5,7 +5,7 @@ if ! [ -x "$(command -v docker-compose -f docker-compose-prod.yml)" ]; then
   exit 1
 fi
 
-domains=(translate.cauduro.dev www.translate.cauduro.dev)
+domains=(translate.cauduro.dev)
 rsa_key_size=4096
 data_path="./data/certbot"
 email="rod@cauduro.dev" # Adding a valid address is strongly recommended
