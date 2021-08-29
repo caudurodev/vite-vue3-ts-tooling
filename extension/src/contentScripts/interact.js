@@ -1,7 +1,8 @@
 import $ from 'jquery'
 import text2Speech from '../logic/TextToSpeech'
 
-const SERVER_URL = 'http://192.168.1.11:6565'
+// const SERVER_URL = 'http://192.168.1.11:6565'
+const SERVER_URL = 'https://translate.cauduro.dev'
 
 let popupTimeout = null
 const sentencePopupTimeout = null

@@ -35,8 +35,8 @@ services:
   libretranslate:
     image: libretranslate/libretranslate
     restart: always
-    # env:
-    #   - LT_LOAD_ONLY=it,en,es,de,fr,pt
+    env:
+      - LT_LOAD_ONLY=it,en,es,de,fr,pt
     ports:
       - 5000:5000
     networks:

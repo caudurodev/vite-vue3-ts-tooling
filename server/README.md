@@ -3,8 +3,13 @@ https://pentacent.medium.com/nginx-and-lets-encrypt-with-docker-in-less-than-5-m
 0) log on to server
 ssh root@68.183.218.102
 
+increase swap memory
+sudo fallocate -l 6G /swapfile && sudo chmod 600 /swapfile && sudo mkswap /swapfile && sudo swapon /swapfile 
+
 1) create server ssh keys
 ssh-keygen -t rsa && cat /root/.ssh/id_rsa.pub
+
+
 
 2) Add server keys to github project
 https://github.com/settings/keys
@@ -14,13 +19,12 @@ cd / && git clone git@github.com:caudurodev/vite-vue3-ts-tooling.git && cd freq_
 
 cd vite-vue3-ts-tooling/server
 
-pull the images
-docker-compose -f docker-compose-prod.yml up
 
-docker-compose -f docker-compose-prod.yml down
 
 4) generate dummy certificate so nginx will start without error
 chmod +x init-letsencrypt.sh && sudo ./init-letsencrypt.sh.
 
+
+
 should now work
-docker-compose -f docker-compose-prod.yml up
+docker-compose  up
