@@ -7,6 +7,8 @@ services:
       - ./nginx/certbot/conf:/etc/letsencrypt
       - ./nginx/certbot/www:/var/www/certbot
     entrypoint: "/bin/sh -c 'trap exit TERM; while :; do certbot renew; sleep 12h & wait $${!}; done;'"
+    networks:
+      - flat-network
 
   nginx:
     networks:
@@ -26,17 +28,21 @@ services:
       - ./nginx/certbot/www:/var/www/certbot
     depends_on:
       - certbot
+    networks:
+      - flat-network
       
   libretranslate:
     image: libretranslate/libretranslate
     restart: always
+    # env:
+    #   - LT_LOAD_ONLY=it,en
     depends_on:
       - nginx
     ports:
       - 5000:5000
     networks:
-      - language-net
+      - flat-network
 
 networks:
-  language-net:
+  flat-network:
     driver: bridge
