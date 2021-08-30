@@ -50,6 +50,7 @@
   },
   "dependencies": {
     "jquery": "^3.6.0",
-    "mark.js": "^8.11.1"
+    "mark.js": "^8.11.1",
+    "transition-style": "^0.1.1"
   }
 }

@@ -1,3 +1,6 @@
 {
-  "extends": "@antfu"
+  "extends": "@antfu",
+  "rules": {
+    "vue/no-multiple-template-root": "off"
+  }
 }

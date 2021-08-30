@@ -1,24 +1,24 @@
 import browser from 'webextension-polyfill'
 import $ from 'jquery'
 import Mark from 'mark.js'
+import 'transition-style'
 
-function uniqueID() {
+const uniqueID = () => {
   return Math.floor(Math.random() * Date.now())
 }
 
 const wrapSentences = async(s, node, sentenceId = 0, delay = 0) => {
   const createdSentences = []
-  // console.log('try to wrap sentence', s, node)
   return new Promise((resolve, reject) => {
     try {
       const instance = new Mark($(node)[0])
-      // const notFound = []
-
       instance.mark(s, {
         accuracy: 'exactly',
         acrossElements: true,
         separateWordSearch: false,
         diacritics: true,
+        ignoreJoiners: true,
+        ignorePunctuation: true,
         element: 'learnsentence',
         exclude: [
           'style *',
@@ -28,10 +28,6 @@ const wrapSentences = async(s, node, sentenceId = 0, delay = 0) => {
           '.originalSentence',
         ],
         className: 'sentenceHighlight',
-        // noMatch: function (term) {
-        //   console.log(`not found match on node: "${term}"`, node)
-        //   if (term.trim()) notFound.push(term)
-        // },
         each: (e) => {
           const text = $(e).text().trim()
           if (text) {
@@ -54,7 +50,7 @@ const wrapSentences = async(s, node, sentenceId = 0, delay = 0) => {
           }
         },
       })
-      if (delay === 0) {
+      if (delay > 0) {
         setTimeout(() => {
           resolve(createdSentences)
         }, delay)
@@ -114,6 +110,7 @@ const getTextNodes = (el) => {
     node = $(currentTextNode)
     parent = node.parent()
     if (!parent.is('script,style,stylescript')) {
+      // if (node.is(':visible')) {
       if (node.text().replace(/\s+/g, '').trim()) {
         // parent cannot already have been added to nodes
         if (
@@ -128,10 +125,11 @@ const getTextNodes = (el) => {
           })
         }
       }
+      // }
     }
   }
   const t1 = performance.now()
-  console.log(`Call to doSomething took ${t1 - t0} milliseconds.`)
+  console.log(`getTextNodes took ${t1 - t0} milliseconds.`)
   return textNodes
 }
 
@@ -201,6 +199,8 @@ const getAllPageSentences = (el) => {
 }
 
 const contentEnable = async() => {
+  // $('body').attr('transition-style', 'i n:circle:bottom-right') //swipe animation
+  const t0 = performance.now()
   const textNodes = getPageContent()
   if (!textNodes || !textNodes.length) {
     browser.runtime.sendMessage({
@@ -212,7 +212,7 @@ const contentEnable = async() => {
 
   let sentenceId = 0
   let wordIdStart = 0
-  const delay = 0
+  const delay = 1 // ms
   const skipSentence = false
   for (let j = 0; j < textNodes.length; j++) {
     const node = textNodes[j].parent
@@ -257,6 +257,8 @@ const contentEnable = async() => {
     action: 'bg.activate.finished',
     result: true,
   })
+  const t1 = performance.now()
+  console.log(`contentEnable took ${t1 - t0} milliseconds.`)
 }
 
 export default contentEnable

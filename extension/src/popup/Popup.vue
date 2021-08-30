@@ -1,82 +1,78 @@
 <template>
-  <main class="w-[300px] px-4 py-5 text-center text-gray-700">
-    <Logo />
-    <div>Popup2</div>
-    <p class="mt-2 opacity-50">
-      This is the popup page
-    </p>
-
-    <button class="btn mt-2" @click="openOptionsPage">
-      Open Options33
-    </button>
-
-    <div class="container mx-auto p-4 h-screen pop">
-      <h3>Your Language</h3>
-      <select
-        v-model="userLanguage"
-        class="w-full mb-4 p-2 bg-green-300 text-gray-600 rounded"
-        @change="setLanguagePairs"
+  <main class="w-[260px] px-4 py-5 text-center text-gray-700">
+    <h3 class="py-2">
+      Your Language
+    </h3>
+    <select
+      v-model="userLanguage"
+      class="w-full mb-4 p-2 bg-green-300 text-gray-600 rounded"
+      @change="setLanguagePairs"
+    >
+      <option
+        v-for="lang in languageOptions"
+        :key="lang.code"
+        :value="lang.code"
       >
-        <option
-          v-for="lang in languageOptions"
-          :key="lang.code"
-          :value="lang.code"
-        >
-          {{ lang.label }}
-        </option>
-      </select>
-      <h3>Tab Language</h3>
-      <select
-        v-model="currentTabLanguage"
-        class="w-full mb-4 p-2 bg-green-300 text-gray-600 rounded"
-        @change="setLanguagePairs"
+        {{ lang.label }}
+      </option>
+    </select>
+    <h3 class="py-2">
+      Tab Language
+    </h3>
+    <select
+      v-model="currentTabLanguage"
+      class="w-full mb-4 p-2 bg-green-300 text-gray-600 rounded"
+      @change="setLanguagePairs"
+    >
+      <option
+        v-for="lang in languageOptions"
+        :key="lang.code"
+        :value="lang.code"
       >
-        <option
-          v-for="lang in languageOptions"
-          :key="lang.code"
-          :value="lang.code"
-        >
-          {{ lang.label }}
-        </option>
-      </select>
-      <div class="px-3 py-2 flex items-center justify-between">
-        <div class="flex items center space-x-2">
-          <p>Say Words</p>
-        </div>
-        <Toggle
-          :model-value="isSpeakingWords"
-          @update:model-value="isSpeakingWords = $event"
-        />
+        {{ lang.label }}
+      </option>
+    </select>
+    <div class="px-3 py-2 flex items-center justify-between">
+      <div class="flex items center space-x-2">
+        <p>Say Words</p>
       </div>
-      <div class="px-3 py-2 flex items-center justify-between">
-        <div class="flex items center space-x-2">
-          <p>Say Sentences</p>
-        </div>
-        <Toggle
-          :model-value="isSpeakingSentences"
-          @update:model-value="isSpeakingSentences = $event"
-        />
+      <Toggle
+        :model-value="isSpeakingWords"
+        @update:model-value="isSpeakingWords = $event"
+      />
+    </div>
+    <div class="px-3 py-2 flex items-center justify-between">
+      <div class="flex items center space-x-2">
+        <p>Say Sentences</p>
       </div>
-      <button
-        class="
+      <Toggle
+        :model-value="isSpeakingSentences"
+        @update:model-value="isSpeakingSentences = $event"
+      />
+    </div>
+    <button
+      class="
         mt-5
         font-bold
         py-2
         px-4
         rounded
-        bg-yellow-500
         text-white
-        hover:bg-yellow-700
       "
-        :disabled="activationSuccess"
-        @click="activateTranslations()"
-      >
-        <span v-if="!isActivatingOnPage">Activate on Current Tab</span>
-        <span v-if="isActivatingOnPage">Activating...</span>
-        <span v-if="activationSuccess">Success!</span>
-        <span v-if="!activationSuccess">Error</span>
-      </button>
-    </div>
+      :class="{ 'bg-yellow-500 hover:bg-yellow-700': !isEnabled , 'bg-green-500': isEnabled ,'bg-green-500': isActivatingOnPage }"
+      :disabled="isEnabled"
+      @click="activateTranslations()"
+    >
+      <span v-if="!isEnabled && !isActivatingOnPage">Activate</span>
+      <span v-if="isActivatingOnPage && !isEnabled">
+        <icon-park-outline:loading class="animate-spin block m-auto text-white text-lg" />
+      </span>
+      <span v-if="activationSuccess && isEnabled">
+        Done.
+        <icon-park-outline:check class="block m-auto text-green text-lg" />
+      </span>
+      <span v-if="!activationSuccess && isEnabled">Error</span>
+    </button>
   </main>
 </template>
 
@@ -106,6 +102,7 @@ const browserLanguage = languageOptions.value.filter(l =>
 const userLanguage = ref(
   browserLanguage.length ? browserLanguage[0].code : false,
 )
+const isEnabled = ref(false)
 const isActivatingOnPage = ref(false)
 const activationSuccess = ref(false)
 const isSpeakingWords = ref(false)
@@ -131,6 +128,7 @@ browser.runtime.onMessage.addListener(async(request) => {
   }
 
   if (request.action === 'activate.finished') {
+    isEnabled.value = true
     isActivatingOnPage.value = false
     activationSuccess.value = request.result
   }

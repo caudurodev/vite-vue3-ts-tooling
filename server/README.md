@@ -28,3 +28,16 @@ chmod +x init-letsencrypt.sh && sudo ./init-letsencrypt.sh.
 
 should now work
 docker-compose  up
+
+
+
+TODO:
+- use localstorage to pass data around
+- vueuse - language settings?
+- faster enable on page - remove elements not visible
+- component framework?
+- librestranslate.de as fallback
+- better sentences regex for each supported language
+- nicer designs - create assets for extension store
+- TDD E2E tests
+- unit tests?
