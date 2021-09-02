@@ -59,7 +59,7 @@
         rounded
         text-white
       "
-      :class="{ 'bg-yellow-500 hover:bg-yellow-700': !isEnabled , 'bg-green-500': isEnabled ,'bg-green-500': isActivatingOnPage }"
+      :class="{ 'bg-yellow-500 hover:bg-yellow-700': !isEnabled , 'bg-green-500': isEnabled ,'bg-green-700': isActivatingOnPage }"
       :disabled="isEnabled"
       @click="activateTranslations()"
     >
@@ -77,7 +77,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, watch } from 'vue'
+import { ref } from 'vue'
 import browser from 'webextension-polyfill'
 import Toggle from '../components/Toggle.vue'
 import Language from '../types/Language'
@@ -153,6 +153,9 @@ const getVoices = async() => {
 const init = async() => {
   await browser.runtime.sendMessage({
     action: 'popup.language.detect',
+  })
+  await browser.runtime.sendMessage({
+    action: 'popup.content.activate',
   })
   getVoices()
 }

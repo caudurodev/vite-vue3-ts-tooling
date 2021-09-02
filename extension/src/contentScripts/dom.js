@@ -23,6 +23,7 @@ const wrapSentences = async(s, node, sentenceId = 0, delay = 0) => {
         exclude: [
           'style *',
           'script *',
+          'languagelearningcontent',
           'learnsentence',
           '.sentenceHighlight',
           '.originalSentence',
@@ -76,6 +77,7 @@ const wrapWords = (node, wordIdStart = 0) => {
       element: 'span',
       exclude: [
         '.mainEasyReadWindow *',
+        'languagelearningcontent',
         '#easyReadAppMain *',
         '.sentenceHighlight .translation',
         '#easyReadTooltipSentence',
@@ -214,7 +216,10 @@ const contentEnable = async() => {
   let wordIdStart = 0
   const delay = 1 // ms
   const skipSentence = false
+  let progress = 0
   for (let j = 0; j < textNodes.length; j++) {
+    progress = 100 - Math.round((j / textNodes.length) * 100)
+    console.log('progress', progress)
     const node = textNodes[j].parent
     const sentences = getAllPageSentences(node)
     // console.log('node', node, sentences)

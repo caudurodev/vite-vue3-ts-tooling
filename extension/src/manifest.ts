@@ -15,7 +15,7 @@ export async function getManifest() {
     description: pkg.description,
     browser_action: {
       default_icon: './assets/icon-512.png',
-      default_popup: './dist/popup/index.html',
+      // default_popup: './dist/popup/index.html',
     },
     options_ui: {
       page: './dist/options/index.html',
@@ -41,11 +41,11 @@ export async function getManifest() {
       '*://*/*',
       '<all_urls>',
     ],
-    content_scripts: [{
-      matches: ['<all_urls>'],
-      js: ['./dist/contentScripts/index.global.js'],
-      css: ['./dist/contentScripts/style.css'],
-    }],
+    // content_scripts: [{
+    //   matches: ['<all_urls>'],
+    //   // js: ['./dist/contentScripts/index.global.js'],
+    //   css: ['./dist/contentScripts/style.css'],
+    // }],
   }
 
   if (isDev) {
