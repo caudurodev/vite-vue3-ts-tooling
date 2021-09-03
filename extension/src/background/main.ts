@@ -2,9 +2,34 @@
 // import browser, { Tabs } from 'webextension-polyfill'
 import browser from 'webextension-polyfill'
 
+let activeTabs: number[] = []
+
+// browser.tabs.get(tabId, callback)
+browser.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
+  console.log('tab updated', tabId, changeInfo, tab)
+  if (activeTabs.includes(tabId))
+    activeTabs = activeTabs.filter(n => n !== tabId)
+})
+
+browser.tabs.onRemoved.addListener((tabId) => {
+  console.log('tab removed', tabId)
+  if (activeTabs.includes(tabId))
+    activeTabs = activeTabs.filter(n => n !== tabId)
+})
+
 browser.browserAction.onClicked.addListener((activeTab) => {
-  browser.tabs.executeScript({ file: 'dist/contentScripts/index.global.js' })
-  browser.tabs.insertCSS({ file: 'dist/contentScripts/style.css' })
+  const tabId = activeTab.id
+  console.log('tabId', tabId, activeTabs)
+  if (!activeTabs.includes(tabId)) {
+    console.log('activating tab id', tabId)
+    activeTabs.push(tabId)
+    browser.tabs.executeScript(undefined, { file: 'dist/contentScripts/index.global.js' })
+    browser.tabs.insertCSS({ file: 'dist/contentScripts/style.css' })
+  }
+  else {
+    console.log('already active tab id', tabId)
+  }
+  console.log('activeTabs', activeTabs)
 })
 
 // // only on dev mode

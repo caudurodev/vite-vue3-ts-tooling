@@ -3,6 +3,8 @@ import $ from 'jquery'
 import Mark from 'mark.js'
 import 'transition-style'
 
+const UNIQUE_INTERFACE_ID = 'a4efr4vrtewfw2efasa'
+
 const uniqueID = () => {
   return Math.floor(Math.random() * Date.now())
 }
@@ -143,7 +145,8 @@ const getPageContent = () => {
     const textContent = $(node).text()
     const stripped = textContent.replace(/\s+/g, '')
     const isVisible = $(node)[0].offsetParent !== null
-    if (stripped && isVisible)
+    const isNotInterface = !$(node).closest(`#${UNIQUE_INTERFACE_ID}`)[0]
+    if (stripped && isVisible && isNotInterface)
       return true
 
     return false

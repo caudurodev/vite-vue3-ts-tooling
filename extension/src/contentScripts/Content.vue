@@ -27,6 +27,7 @@
       </div>
     </div>
     <aside
+      :id="UNIQUE_INTERFACE_ID"
       class="transform top-0 left-0 w-64 bg-purple-600 fixed h-full overflow-auto ease-in-out transition-all duration-300 z-30 p4"
       :class="isOpen ? 'translate-x-0' : '-translate-x-full'"
     >
@@ -117,6 +118,7 @@ import Toggle from '../components/Toggle.vue'
 import Language from '../types/Language'
 import interactiveWords from './interact'
 import contentEnable from './dom'
+const UNIQUE_INTERFACE_ID = 'a4efr4vrtewfw2efasa'
 console.log('setup content')
 
 // const uniqueClass = '.x4Q7wcLsK28K1rg21QjmnL'
