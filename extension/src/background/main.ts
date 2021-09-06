@@ -2,6 +2,15 @@
 // import browser, { Tabs } from 'webextension-polyfill'
 import browser from 'webextension-polyfill'
 
+const sendMessageToActiveTab = async(message) => {
+  browser.tabs
+    .query({ currentWindow: true, active: true })
+    .then(([tab]) => {
+      if (tab && tab.id)browser.tabs.sendMessage(tab.id, message)
+    })
+    .catch(e => console.log('message error', e))
+}
+
 let activeTabs: number[] = []
 
 // browser.tabs.get(tabId, callback)
@@ -17,7 +26,7 @@ browser.tabs.onRemoved.addListener((tabId) => {
     activeTabs = activeTabs.filter(n => n !== tabId)
 })
 
-browser.browserAction.onClicked.addListener((activeTab) => {
+browser.browserAction.onClicked.addListener(async(activeTab) => {
   const tabId = activeTab.id
   console.log('tabId', tabId, activeTabs)
   if (!activeTabs.includes(tabId)) {
@@ -28,6 +37,7 @@ browser.browserAction.onClicked.addListener((activeTab) => {
   }
   else {
     console.log('already active tab id', tabId)
+    await sendMessageToActiveTab({ action: 'toggle.sidebar' })
   }
   console.log('activeTabs', activeTabs)
 })
@@ -83,15 +93,6 @@ browser.browserAction.onClicked.addListener((activeTab) => {
 //     }
 //   }
 // })
-
-// const sendMessageToActiveTab = async(message) => {
-//   browser.tabs
-//     .query({ currentWindow: true, active: true })
-//     .then(([tab]) => {
-//       if (tab && tab.id)browser.tabs.sendMessage(tab.id, message)
-//     })
-//     .catch(e => console.log('message error', e))
-// }
 
 // browser.runtime.onMessage.addListener(async(request) => {
 //   if (request.action === 'popup.content.activate') {

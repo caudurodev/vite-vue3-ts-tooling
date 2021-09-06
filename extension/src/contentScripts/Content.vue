@@ -1,6 +1,6 @@
 <template>
   <div>
-    <div class=" fixed right-0 bottom-0 m-5 z-100 flex font-sans select-none leading-1em">
+    <!-- <div class=" fixed right-0 bottom-0 m-5 z-100 flex font-sans select-none leading-1em">
       <div
         class="bg-white text-gray-800 rounded-full shadow w-max h-min"
         p="x-4 y-2"
@@ -25,12 +25,16 @@
           class="block m-auto text-white text-lg"
         />
       </div>
-    </div>
+    </div> -->
     <aside
       :id="UNIQUE_INTERFACE_ID"
-      class="transform top-0 left-0 w-64 bg-purple-600 fixed h-full overflow-auto ease-in-out transition-all duration-300 z-30 p4"
-      :class="isOpen ? 'translate-x-0' : '-translate-x-full'"
+      ref="target"
+      class="border-2 border-red-500 transform top-0 left-0 w-64 bg-white fixed h-full overflow-auto ease-in-out transition-all duration-300 p-4"
+      :class="isOpen ? 'translate-x-0' : '-translate-x-full '"
     >
+      <button @click="toggle2()">
+        X
+      </button>
       <h3 class="py-2 text-lg font-serif">
         Your Language
       </h3>
@@ -81,8 +85,9 @@
           @update:model-value="isSpeakingSentences = $event"
         />
       </div>
-      <button
-        class="
+      <div v-if="!hideActivationProgress">
+        <button
+          class="
         mt-5
         font-bold
         py-2
@@ -90,28 +95,31 @@
         rounded
         text-white
       "
-        :class="{ 'bg-yellow-500 hover:bg-yellow-700': !isEnabled , 'bg-green-500': isEnabled || isActivatingOnPage }"
-        :disabled="isEnabled"
-        @click="activateContent()"
-      >
-        <span v-if="!isEnabled && !isActivatingOnPage">Activate</span>
-        <span v-if="isActivatingOnPage && !isEnabled">
-          <icon-park-outline:loading class="animate-spin block m-auto text-white text-lg" />
-        </span>
-        <span v-if="activationSuccess && isEnabled">
-          Done.
-          <icon-park-outline:check class="block m-auto text-green text-lg" />
-        </span>
-        <span v-if="!activationSuccess && isEnabled">Error</span>
-      </button>
+          :class="{ 'bg-yellow-500 hover:bg-yellow-700': !isEnabled , 'bg-green-500': isEnabled || isActivatingOnPage }"
+          :disabled="isEnabled"
+          @click="activateContent()"
+        >
+          <span v-if="!isEnabled && !isActivatingOnPage">Activate</span>
+          <span v-if="isActivatingOnPage && !isEnabled">
+            <icon-park-outline:loading class="animate-spin block m-auto text-white text-lg" />
+          </span>
+          <span v-if="activationSuccess && isEnabled">
+            Done.
+            <icon-park-outline:check class="block m-auto text-green text-lg" />
+          </span>
+          <span v-if="!activationSuccess && isEnabled">Error</span>
+        </button>
+        <progress-bar :value="progressValue" />
+      </div>
     </aside>
   </div>
 </template>
 
 <script setup lang="ts">
 import { ref } from 'vue'
-import { useToggle } from '@vueuse/core'
+import { onClickOutside, useToggle } from '@vueuse/core'
 import browser from 'webextension-polyfill'
+import ProgressBar from '../components/ProgressBar.vue'
 import 'virtual:windi.css'
 import getLanguageDefaults from '../logic/detectLanguage'
 import Toggle from '../components/Toggle.vue'
@@ -124,6 +132,8 @@ console.log('setup content')
 // const uniqueClass = '.x4Q7wcLsK28K1rg21QjmnL'
 
 const showExtension = ref(false)
+const hideActivationProgress = ref(false)
+const progressValue = ref(0)
 const [show, toggle] = useToggle(false)
 const [isOpen, toggle2] = useToggle(true)
 const isEnabled = ref(false)
@@ -172,19 +182,27 @@ const activateContent = async() => {
     shouldSpeakWords.value,
     shouldSpeakSentences.value,
   )
-  await contentEnable()
+  await contentEnable(progressValue)
   isActivatingOnPage.value = false
   activationSuccess.value = true
   isEnabled.value = true
+  setTimeout(() => {
+    hideActivationProgress.value = true
+  }, 500)
+  setTimeout(() => {
+    toggle2()
+  }, 1000)
 }
 
 browser.runtime.onMessage.addListener(async(request) => {
-  if (request.action === 'content.activate') {
+  if (request.action === 'toggle.sidebar')
+    toggle2()
+
+  if (request.action === 'content.activate')
     showExtension.value = true
-    setTimeout(() => {
-      toggle2()
-    }, 500)
-  }
+    // setTimeout(() => {
+    //   toggle2()
+    // }, 1000)
 
   if (request.action === 'translations.activate') {
     if (isEnabled.value)
@@ -236,6 +254,9 @@ const setLanguagePairs = async() => {
     currentTabLanguage: currentTabLanguage.value,
   })
 }
+const target = ref(null)
+
+onClickOutside(target, (event) => { if (isOpen.value) toggle2() })
 console.log('setup content end')
 
 </script>

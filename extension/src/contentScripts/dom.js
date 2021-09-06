@@ -203,7 +203,7 @@ const getAllPageSentences = (el) => {
   return returnSentences
 }
 
-const contentEnable = async() => {
+const contentEnable = async(progressValueVue) => {
   // $('body').attr('transition-style', 'i n:circle:bottom-right') //swipe animation
   const t0 = performance.now()
   const textNodes = getPageContent()
@@ -221,8 +221,8 @@ const contentEnable = async() => {
   const skipSentence = false
   let progress = 0
   for (let j = 0; j < textNodes.length; j++) {
-    progress = 100 - Math.round((j / textNodes.length) * 100)
-    console.log('progress', progress)
+    progress = Math.round((j / textNodes.length) * 100)
+    progressValueVue.value = progress
     const node = textNodes[j].parent
     const sentences = getAllPageSentences(node)
     // console.log('node', node, sentences)
@@ -261,6 +261,7 @@ const contentEnable = async() => {
       }
     }
   }
+  progressValueVue.value = 100
   browser.runtime.sendMessage({
     action: 'bg.activate.finished',
     result: true,
