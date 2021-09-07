@@ -260,4 +260,5 @@ onClickOutside(target, (event) => { if (isOpen.value) toggle2() })
 console.log('setup content end')
 
 </script>
+<style src="../styles/fonts.css" ></style>
 <style src="../styles/content.css" ></style>
