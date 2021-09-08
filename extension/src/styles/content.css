@@ -1,6 +1,8 @@
 /* Global CSS used within your BEX. This is not preprocessed so this has to be pure CSS. */
 #a4efr4vrtewfw2efasa {
   z-index: 99999999;
+  /* border not working in windi for some reason so setting manually here */
+  border-right: solid 2px #CCC;
 }
 #a4efr4vrtewfw2efasa , #a4efr4vrtewfw2efasa > * {
   font-family: 'Montserrat', Arial, Helvetica, sans-serif !important;
@@ -81,6 +83,9 @@
 .sentenceHighlight .translationSentenceText {
   display: inline !important;
 }
+.translateSentenceButton {
+  animation: append-animate 0.4s ease-in;
+}
 .sentenceHighlight .translateSentenceButton {
   height: 1.2em;
   width: 1.2em;
@@ -91,13 +96,25 @@
   display: inline;
   padding: 0;
   cursor: pointer;
+  
 }
 .translateSentenceButton .svg-icon,
 .translateSentenceButton svg {
   height: 1em;
   width: 1em;
+  
 }
 .svg-icon {
   max-height: 1rem;
   max-width: 1rem;
+}
+@keyframes append-animate {
+	from {
+		transform: scale(0);
+		opacity: 0;
+	}
+	to {
+		transform: scale(1);
+		opacity: 1;	
+	}
 }

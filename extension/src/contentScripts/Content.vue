@@ -27,67 +27,75 @@
       </div>
     </div> -->
     <aside
+      v-if="showExtension"
       :id="UNIQUE_INTERFACE_ID"
       ref="target"
-      class="border-2 border-red-500 transform top-0 left-0 w-64 bg-white fixed h-full overflow-auto ease-in-out transition-all duration-300 p-4"
-      :class="isOpen ? 'translate-x-0' : '-translate-x-full '"
+      class="transform top-0 left-0 w-64 bg-white fixed h-full overflow-auto ease-in-out duration-300"
+      :class="
+        {
+          'translate-x-0' : isOpen,
+          '-translate-x-full': !isOpen,
+        }
+      "
     >
-      <button @click="toggle2()">
-        X
-      </button>
-      <h3 class="py-2 text-lg font-serif">
-        Your Language
-      </h3>
-      <select
-        v-model="userLanguage"
-        class="w-full mb-4 p-2 bg-green-300 text-gray-600 rounded"
-        @change="setLanguagePairs"
-      >
-        <option
-          v-for="lang in languageOptions"
-          :key="lang.code"
-          :value="lang.code"
+      <div class="p-4">
+        open? {{ isOpen }}  show? {{ showExtension }}
+        <button @click="toggle2()">
+          X
+        </button>
+        <h3 class="py-2 text-lg font-serif">
+          Your Language
+        </h3>
+        <select
+          v-model="userLanguage"
+          class="w-full mb-4 p-2 bg-green-300 text-gray-600 rounded"
+          @change="setLanguagePairs"
         >
-          {{ lang.label }}
-        </option>
-      </select>
-      <h3 class="py-2">
-        Tab Language
-      </h3>
-      <select
-        v-model="currentTabLanguage"
-        class="w-full mb-4 p-2 bg-green-300 text-gray-600 rounded"
-        @change="setLanguagePairs"
-      >
-        <option
-          v-for="lang in languageOptions"
-          :key="lang.code"
-          :value="lang.code"
+          <option
+            v-for="lang in languageOptions"
+            :key="lang.code"
+            :value="lang.code"
+          >
+            {{ lang.label }}
+          </option>
+        </select>
+        <h3 class="py-2">
+          Tab Language
+        </h3>
+        <select
+          v-model="currentTabLanguage"
+          class="w-full mb-4 p-2 bg-green-300 text-gray-600 rounded"
+          @change="setLanguagePairs"
         >
-          {{ lang.label }}
-        </option>
-      </select>
-      <div class="px-3 py-2 flex items-center justify-between">
-        <div class="flex items center space-x-2">
-          <p>Say Words</p>
+          <option
+            v-for="lang in languageOptions"
+            :key="lang.code"
+            :value="lang.code"
+          >
+            {{ lang.label }}
+          </option>
+        </select>
+        <div class="px-3 py-2 flex items-center justify-between">
+          <div class="flex items center space-x-2">
+            <p>Say Words</p>
+          </div>
+          <Toggle
+            :model-value="isSpeakingWords"
+            @update:model-value="isSpeakingWords = $event"
+          />
         </div>
-        <Toggle
-          :model-value="isSpeakingWords"
-          @update:model-value="isSpeakingWords = $event"
-        />
-      </div>
-      <div class="px-3 py-2 flex items-center justify-between">
-        <div class="flex items center space-x-2">
-          <p>Say Sentences</p>
+        <div class="px-3 py-2 flex items-center justify-between">
+          <div class="flex items center space-x-2">
+            <p>Say Sentences</p>
+          </div>
+          <Toggle
+            :model-value="isSpeakingSentences"
+            @update:model-value="isSpeakingSentences = $event"
+          />
         </div>
-        <Toggle
-          :model-value="isSpeakingSentences"
-          @update:model-value="isSpeakingSentences = $event"
-        />
-      </div>
-      <div v-if="!hideActivationProgress">
-        <button
-          class="
+        <div v-if="!hideActivationProgress">
+          <button
+            class="
         mt-5
         font-bold
         py-2
@@ -95,29 +103,31 @@
         rounded
         text-white
       "
-          :class="{ 'bg-yellow-500 hover:bg-yellow-700': !isEnabled , 'bg-green-500': isEnabled || isActivatingOnPage }"
-          :disabled="isEnabled"
-          @click="activateContent()"
-        >
-          <span v-if="!isEnabled && !isActivatingOnPage">Activate</span>
-          <span v-if="isActivatingOnPage && !isEnabled">
-            <icon-park-outline:loading class="animate-spin block m-auto text-white text-lg" />
-          </span>
-          <span v-if="activationSuccess && isEnabled">
-            Done.
-            <icon-park-outline:check class="block m-auto text-green text-lg" />
-          </span>
-          <span v-if="!activationSuccess && isEnabled">Error</span>
-        </button>
-        <progress-bar :value="progressValue" />
+            :class="{ 'bg-yellow-500 hover:bg-yellow-700': !isEnabled , 'bg-green-500': isEnabled || isActivatingOnPage }"
+            :disabled="isEnabled"
+            @click="activateContent()"
+          >
+            <span v-if="!isEnabled && !isActivatingOnPage">Activate</span>
+            <span v-if="isActivatingOnPage && !isEnabled">
+              <icon-park-outline:loading class="animate-spin block m-auto text-white text-lg" />
+            </span>
+            <span v-if="activationSuccess && isEnabled">
+              Done.
+              <icon-park-outline:check class="block m-auto text-green text-lg" />
+            </span>
+            <span v-if="!activationSuccess && isEnabled">Error</span>
+          </button>
+          <progress-bar :value="progressValue" />
+        </div>
       </div>
     </aside>
   </div>
 </template>
 
 <script setup lang="ts">
+import $ from 'jquery'
 import { ref } from 'vue'
-import { onClickOutside, useToggle } from '@vueuse/core'
+import { onClickOutside, useMutationObserver, useToggle } from '@vueuse/core'
 import browser from 'webextension-polyfill'
 import ProgressBar from '../components/ProgressBar.vue'
 import 'virtual:windi.css'
@@ -135,7 +145,7 @@ const showExtension = ref(false)
 const hideActivationProgress = ref(false)
 const progressValue = ref(0)
 const [show, toggle] = useToggle(false)
-const [isOpen, toggle2] = useToggle(true)
+const [isOpen, toggle2] = useToggle(false)
 const isEnabled = ref(false)
 const isActivatingOnPage = ref(false)
 const activationSuccess = ref(false)
@@ -183,26 +193,41 @@ const activateContent = async() => {
     shouldSpeakSentences.value,
   )
   await contentEnable(progressValue)
-  isActivatingOnPage.value = false
+
   activationSuccess.value = true
   isEnabled.value = true
   setTimeout(() => {
-    hideActivationProgress.value = true
-  }, 500)
+    isActivatingOnPage.value = false
+  }, 200)
   setTimeout(() => {
+    hideActivationProgress.value = true
+  }, 600)
+  setTimeout(() => {
+    console.log('activateContent')
     toggle2()
   }, 1000)
 }
 
-browser.runtime.onMessage.addListener(async(request) => {
-  if (request.action === 'toggle.sidebar')
+setTimeout(() => {
+  // wait for code to be injected and parsed
+  showExtension.value = true
+  setTimeout(() => {
     toggle2()
+  }, 300)
+}, 50)
+
+browser.runtime.onMessage.addListener(async(request) => {
+  if (request.action === 'toggle.sidebar') {
+    console.log('toggle')
+    toggle2()
+  }
 
   if (request.action === 'content.activate')
-    showExtension.value = true
-    // setTimeout(() => {
-    //   toggle2()
-    // }, 1000)
+    console.log('activate')
+
+  // setTimeout(() => {
+  //   toggle2()
+  // }, 1000)
 
   if (request.action === 'translations.activate') {
     if (isEnabled.value)
@@ -257,8 +282,22 @@ const setLanguagePairs = async() => {
 const target = ref(null)
 
 onClickOutside(target, (event) => { if (isOpen.value) toggle2() })
-console.log('setup content end')
 
+// TODO: watch dom for changes and apply learning to new textnodes
+// const observer = new MutationObserver((mutationsList, observer) => {
+//   if (isActivatingOnPage.value) return
+//   for (const mutation of mutationsList) {
+//     if (mutation.type === 'childList')
+//       console.log('A child node has been added or removed.', mutation)
+//     else if (mutation.type === 'attributes')
+//       console.log(`The ${mutation.attributeName} attribute was modified.`)
+//   }
+//   console.log('callback that runs when observer is triggered')
+// })
+// observer.observe(document.body, { subtree: true, childList: true })
+
+console.log('setup content end')
 </script>
+
 <style src="../styles/fonts.css" ></style>
 <style src="../styles/content.css" ></style>

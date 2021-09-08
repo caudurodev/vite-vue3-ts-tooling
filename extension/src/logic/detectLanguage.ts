@@ -24,7 +24,7 @@ const detectLanguage = async() => {
   )
     return detectLanguage.languages[0]
 
-  console.log('browser detectLanguage failed using API', pageText)
+  console.log('browser detectLanguage failed using API')
   return fetch(`${SERVER_URL}/detect`, {
     method: 'POST',
     body: JSON.stringify({

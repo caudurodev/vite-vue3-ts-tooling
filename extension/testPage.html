@@ -13,8 +13,16 @@
       type="text/css"
     />
   </head>
+  <script>
+    const addStuff = () => {
+      console.log('stuff')
+      document.getElementById('addstuff').innerHTML
+          += '<h3>This is the text which has been inserted by JS</h3>'
+}
+  </script>
 
   <body>
+    <div id="addstuff"></div>
     <div class="header reader-header reader-show-element">
       <a
         class="domain reader-domain"
@@ -32,6 +40,8 @@
     </div>
 
     <hr />
+
+    <button onClick="addStuff()">add stuff</button>
 
     <div class="content">
       <div class="moz-reader-content reader-show-element">
