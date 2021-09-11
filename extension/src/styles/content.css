@@ -13,7 +13,7 @@
 }
 .wordHighlight {
   display: inline-block;
-  transition: all 0.2s linear;
+  /* transition: all 0.2s linear; */
   cursor: pointer;
 }
 .wordHighlight .original:hover {
@@ -37,7 +37,10 @@
 .wordHighlight .translation {
   display: none;
   overflow: hidden;
-  transition: all 0.2s linear;
+  /* transition: all 0.2s linear; */
+}
+.translated{
+  animation: append-animate 0.2s ease-out;
 }
 .wordRangeHighlight {
   display: inline-block;
@@ -51,11 +54,11 @@
   color: #066965 !important;
   background-color: #fff;
   width: 100%;
-  transition: all 0.2s linear;
+  /* transition: all 0.2s linear; */
 }
 .wordRangeHighlight .translation {
   display: none;
-  transition: all 0.2s linear;
+  /* transition: all 0.2s linear; */
 }
 .wordRangeHighlight .range-translation {
   display: block;
@@ -69,7 +72,7 @@
   background-color: inherit !important;
 }
 .sentenceHighlight {
-  transition: background-color 0.2s ease-in-out;
+  /* transition: background-color 0.2s ease-in-out; */
 }
 .sentenceHighlight .originalSentence:hover,
 .sentenceHighlight .originalSentence.hover {

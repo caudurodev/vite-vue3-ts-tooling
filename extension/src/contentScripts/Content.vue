@@ -1,45 +1,21 @@
 <template>
   <div>
-    <!-- <div class=" fixed right-0 bottom-0 m-5 z-100 flex font-sans select-none leading-1em">
-      <div
-        class="bg-white text-gray-800 rounded-full shadow w-max h-min"
-        p="x-4 y-2"
-        m="y-auto r-2"
-        transition="opacity duration-300"
-        :class="show ? 'opacity-100' : 'opacity-0'"
-      >
-        {{ isActivatingOnPage }}  tablang:{{ currentTabLanguage }} userlang:{{ userLanguage }} <fa-home /> <mdi:account-box />
+    <transition>
+      <div v-if="progressValue < 100" class="fixed top-0 left-0 w-full bg-white" style="z-index:999999999999999999999999">
+        <div :style="`width:${progressValue}vw`" class="bg-pink-500 h-3"></div>
       </div>
-      <div
-        class="flex w-10 h-10 rounded-full shadow cursor-pointer"
-        bg="teal-600 hover:teal-700"
-        @click="toggle();toggle2()"
-      >
-        <icon-park-outline:loading
-          v-if="!isEnabled"
-          class="block m-auto text-white text-lg"
-          :class="{'animate-spin':isActivatingOnPage}"
-        />
-        <icon-park-outline:check
-          v-if="isEnabled"
-          class="block m-auto text-white text-lg"
-        />
-      </div>
-    </div> -->
+    </transition>
     <aside
       v-if="showExtension"
       :id="UNIQUE_INTERFACE_ID"
       ref="target"
-      class="transform top-0 left-0 w-64 bg-white fixed h-full overflow-auto ease-in-out duration-300"
-      :class="
-        {
-          'translate-x-0' : isOpen,
-          '-translate-x-full': !isOpen,
-        }
-      "
+      class="transform top-0 left-0 w-64 bg-white fixed h-full overflow-auto ease-in-out duration-200"
+      :class="{
+        'translate-x-0' : isOpen,
+        '-translate-x-full': !isOpen,
+      }"
     >
       <div class="p-4">
-        open? {{ isOpen }}  show? {{ showExtension }}
         <button @click="toggle2()">
           X
         </button>
@@ -96,13 +72,13 @@
         <div v-if="!hideActivationProgress">
           <button
             class="
-        mt-5
-        font-bold
-        py-2
-        px-4
-        rounded
-        text-white
-      "
+              mt-5
+              font-bold
+              py-2
+              px-4
+              rounded
+              text-white
+            "
             :class="{ 'bg-yellow-500 hover:bg-yellow-700': !isEnabled , 'bg-green-500': isEnabled || isActivatingOnPage }"
             :disabled="isEnabled"
             @click="activateContent()"
@@ -192,6 +168,7 @@ const activateContent = async() => {
     shouldSpeakWords.value,
     shouldSpeakSentences.value,
   )
+  toggle2()
   await contentEnable(progressValue)
 
   activationSuccess.value = true
@@ -199,13 +176,14 @@ const activateContent = async() => {
   setTimeout(() => {
     isActivatingOnPage.value = false
   }, 200)
-  setTimeout(() => {
-    hideActivationProgress.value = true
-  }, 600)
-  setTimeout(() => {
-    console.log('activateContent')
-    toggle2()
-  }, 1000)
+  // setTimeout(() => {
+  hideActivationProgress.value = true
+  // }, 600)
+  // setTimeout(() => {
+  // console.log('activateContent')
+  // toggle2()
+  // }, 1000)
+  // toggle2()
 }
 
 setTimeout(() => {

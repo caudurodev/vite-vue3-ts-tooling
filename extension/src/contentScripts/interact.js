@@ -117,6 +117,9 @@ const mergeSelectedWords = (evt, currentTabLanguage, userLanguage, shouldSpeakWo
               $(`span[data-range-id=${rangeID}]`)
                 .find('.range-translation')
                 .text(data.translatedText)
+              $(`span[data-range-id=${rangeID}]`)
+                .find('.range-translation')
+                .addClass('translated')
             })
             .catch((e) => {
               console.log('fetch error', e)
@@ -209,6 +212,10 @@ const interactiveWords = (currentTabLanguage, userLanguage, shouldSpeakWords, sh
             .closest('.sentenceHighlight')
             .find('.translationSentenceText')
             .text(data.translatedText)
+          $(evt.target)
+            .closest('.sentenceHighlight')
+            .find('.translationSentenceText')
+            .addClass('translated')
         }
       })
       .catch((e) => {
@@ -278,6 +285,7 @@ const interactiveWords = (currentTabLanguage, userLanguage, shouldSpeakWords, sh
             $(`span[data-word-id=${wordClickedId}]`)
               .find('.translation')
               .html(wordContent)
+            $(`span[data-word-id=${wordClickedId}]`).find('.translation').addClass('translated')
           }
         })
         .catch((e) => {
