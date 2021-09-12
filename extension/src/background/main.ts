@@ -30,6 +30,10 @@ browser.browserAction.onClicked.addListener(async(activeTab) => {
   const tabId = activeTab.id
   console.log('tabId', tabId, activeTabs)
   if (!activeTabs.includes(tabId)) {
+    // change browser button badge test
+    browser.browserAction.setBadgeBackgroundColor({ color: [213, 63, 140, 230] })
+    browser.browserAction.setBadgeText({ text: '1' })
+
     console.log('activating tab id', tabId)
     activeTabs.push(tabId)
     browser.tabs.executeScript(undefined, { file: 'dist/contentScripts/index.global.js' })

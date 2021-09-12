@@ -1,17 +1,17 @@
 version: '3.9'
 services:
-  web:
-    build: .
-    volumes:
-      - "./app:/app"
-    environment:
-      FLASK_DEBUG: 1
-      PYTHONUNBUFFERED: 1
-      # FLASK_APP: ./app.py
-    ports:
-      - "5001:5000"
-    networks:
-      - language-net
+  # web:
+  #   build: .
+  #   volumes:
+  #     - "./app:/app"
+  #   environment:
+  #     FLASK_DEBUG: 1
+  #     PYTHONUNBUFFERED: 1
+  #     # FLASK_APP: ./app.py
+  #   ports:
+  #     - "5001:5000"
+  #   networks:
+  #     - language-net
   # redis:
   #   image: "redis:alpine"
   #   networks:
@@ -19,6 +19,8 @@ services:
   libretranslate:
     image: libretranslate/libretranslate
     restart: always
+    environment:
+      - LT_CHAR_LIMIT=50000000
     ports:
       - 5000:5000
     networks:

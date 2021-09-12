@@ -2,7 +2,7 @@
 #a4efr4vrtewfw2efasa {
   z-index: 99999999;
   /* border not working in windi for some reason so setting manually here */
-  border-right: solid 2px #CCC;
+  border-left: solid 2px #CCC;
 }
 #a4efr4vrtewfw2efasa , #a4efr4vrtewfw2efasa > * {
   font-family: 'Montserrat', Arial, Helvetica, sans-serif !important;
@@ -18,6 +18,7 @@
 }
 .wordHighlight .original:hover {
   background-color: #109e98;
+  box-shadow: -0.2em -0.1em 0 #109e98, 0.2em 0.1em 0 #109e98 ,0.2em -0.1em 0 #109e98 ,-0.2em 0.1em 0 #109e98;
   color: #fff;
 }
 .wordHighlight .translation,
@@ -27,6 +28,7 @@
 }
 .wordHighlight.active .original {
   background-color: #109e98;
+  box-shadow: -0.2em -0.1em 0 #109e98, 0.2em 0.1em 0 #109e98 ,0.2em -0.1em 0 #109e98 ,-0.2em 0.1em 0 #109e98;
   color: #fff;
 }
 .wordHighlight.active .translation {
@@ -47,6 +49,7 @@
 }
 .wordRangeHighlight .range-original {
   background-color: #109e98;
+  box-shadow: -0.2em -0.1em 0 #109e98, 0.2em 0.1em 0 #109e98 ,0.2em -0.1em 0 #109e98 ,-0.2em 0.1em 0 #109e98;
   display: inline-block;
   text-align: center;
 }
@@ -71,16 +74,17 @@
 .wordRangeHighlight .range-original .wordHighlight.active .original {
   background-color: inherit !important;
 }
-.sentenceHighlight {
-  /* transition: background-color 0.2s ease-in-out; */
-}
+/* .sentenceHighlight {
+  transition: background-color 0.2s ease-in-out;
+} */
 .sentenceHighlight .originalSentence:hover,
 .sentenceHighlight .originalSentence.hover {
   color: #fff;
   background-color: #d53f8c;
+  box-shadow: -0.2em -0.1em 0 #d53f8c, 0.2em 0.1em 0 #d53f8c ,0.2em -0.1em 0 #d53f8c ,-0.2em 0.1em 0 #d53f8c;
 }
 .sentenceHighlight .translationSentence {
-  background-color: #fff;
+  /* background-color: #fff; */
   color: #97266d;
 }
 .sentenceHighlight .translationSentenceText {
@@ -90,8 +94,8 @@
   animation: append-animate 0.4s ease-in;
 }
 .sentenceHighlight .translateSentenceButton {
-  height: 1.2em;
-  width: 1.2em;
+  height: 0.9em;
+  width: 0.9em;
   color: #fff;
   background-color: #d53f8c;
   border-radius: 5px;
@@ -99,17 +103,18 @@
   display: inline;
   padding: 0;
   cursor: pointer;
-  
+  vertical-align: middle;
 }
 .translateSentenceButton .svg-icon,
 .translateSentenceButton svg {
-  height: 1em;
-  width: 1em;
+  height: 0.7em;
+  width: 0.7em;
   
 }
 .svg-icon {
-  max-height: 1rem;
-  max-width: 1rem;
+  margin-bottom: 0.1em;
+  /* max-height: 1em;
+  max-width: 1em; */
 }
 @keyframes append-animate {
 	from {
@@ -120,4 +125,13 @@
 		transform: scale(1);
 		opacity: 1;	
 	}
+}
+.fade-enter-active,
+.fade-leave-active {
+  transition: opacity 0.5s ease;
+}
+
+.fade-enter-from,
+.fade-leave-to {
+  opacity: 0;
 }

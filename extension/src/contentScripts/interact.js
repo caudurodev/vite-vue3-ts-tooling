@@ -1,5 +1,5 @@
 import $ from 'jquery'
-import text2Speech from '../logic/TextToSpeech'
+import { text2Speech } from '../logic/TextToSpeech'
 
 // const SERVER_URL = 'http://192.168.1.11:6565'
 const SERVER_URL = 'https://translate.cauduro.dev'
@@ -94,7 +94,7 @@ const mergeSelectedWords = (evt, currentTabLanguage, userLanguage, shouldSpeakWo
         })
         searchText = searchText.trim()
         if (searchText) {
-          if (shouldSpeakWords) {
+          if (shouldSpeakWords.value) {
             // speak
             // console.log('speak', searchText)
             text2Speech(searchText, currentTabLanguage)
@@ -107,8 +107,8 @@ const mergeSelectedWords = (evt, currentTabLanguage, userLanguage, shouldSpeakWo
             method: 'POST',
             body: JSON.stringify({
               q: searchText,
-              source: currentTabLanguage,
-              target: userLanguage,
+              source: currentTabLanguage.value,
+              target: userLanguage.value,
             }),
             headers: { 'Content-Type': 'application/json' },
           })
@@ -188,18 +188,18 @@ const interactiveWords = (currentTabLanguage, userLanguage, shouldSpeakWords, sh
         sentenceText += `${$(e).text()} `
       })
 
-    if (shouldSpeakSentences) {
+    if (shouldSpeakSentences.value) {
       // speak
 
-      text2Speech(sentenceText, currentTabLanguage)
+      text2Speech(sentenceText, currentTabLanguage.value)
     }
 
     fetch(`${SERVER_URL}/translate`, {
       method: 'POST',
       body: JSON.stringify({
         q: sentenceText,
-        source: currentTabLanguage,
-        target: userLanguage,
+        source: currentTabLanguage.value,
+        target: userLanguage.value,
       }),
       headers: { 'Content-Type': 'application/json' },
     })
@@ -224,7 +224,7 @@ const interactiveWords = (currentTabLanguage, userLanguage, shouldSpeakWords, sh
   })
 
   $(document).on('click', '.wordHighlight', (evt) => {
-    console.log('interactiveWords wordHighlight', currentTabLanguage, userLanguage)
+    console.log('interactiveWords wordHighlight', currentTabLanguage.value, userLanguage.value)
     const linkHref = $(evt.target).closest('a').attr('href')
     if (linkHref && $(evt.target).hasClass('golink')) {
       $(this).trigger('click')
@@ -238,26 +238,10 @@ const interactiveWords = (currentTabLanguage, userLanguage, shouldSpeakWords, sh
     $(mainWrapper).toggleClass('active')
 
     const wordClickedText = $(mainWrapper).find('.original').text().trim()
-
-    console.log('wordClickedText', wordClickedText,
-
-      currentTabLanguage,
-      userLanguage)
-
-    if (
-      shouldSpeakWords
-        && $(evt.target).closest('.range-translation').length === 0
-    ) {
-      // speak
-      // timeout to wait for dom to be updated
-      const target = evt.target
+    if (shouldSpeakWords.value) {
       setTimeout(() => {
-        const isRangedTranslation = Boolean(
-          $(target).closest('.range-translation').length,
-        )
-
-        if (!isRangedTranslation)
-          text2Speech(wordClickedText, currentTabLanguage)
+        text2Speech(wordClickedText, currentTabLanguage.value)
+        // }
       }, 500)
     }
 
@@ -270,8 +254,8 @@ const interactiveWords = (currentTabLanguage, userLanguage, shouldSpeakWords, sh
         method: 'POST',
         body: JSON.stringify({
           q: wordClickedText,
-          source: currentTabLanguage,
-          target: userLanguage,
+          source: currentTabLanguage.value,
+          target: userLanguage.value,
         }),
         headers: { 'Content-Type': 'application/json' },
       })

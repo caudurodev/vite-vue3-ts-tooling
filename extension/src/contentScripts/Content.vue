@@ -1,7 +1,7 @@
 <template>
   <div>
-    <transition>
-      <div v-if="progressValue < 100" class="fixed top-0 left-0 w-full bg-white" style="z-index:999999999999999999999999">
+    <transition name="fade">
+      <div v-if="showProgressBar" class="fixed top-0 left-0 w-full bg-white" style="z-index:999999999999999999999999">
         <div :style="`width:${progressValue}vw`" class="bg-pink-500 h-3"></div>
       </div>
     </transition>
@@ -9,17 +9,18 @@
       v-if="showExtension"
       :id="UNIQUE_INTERFACE_ID"
       ref="target"
-      class="transform top-0 left-0 w-64 bg-white fixed h-full overflow-auto ease-in-out duration-200"
+      class="transform top-0 right-0 bg-white fixed h-full overflow-auto ease-in-out duration-200"
       :class="{
-        'translate-x-0' : isOpen,
-        '-translate-x-full': !isOpen,
+        '-translate-x-0' : isOpen,
+        'translate-x-full': !isOpen,
       }"
+      style="width:250px"
     >
       <div class="p-4">
-        <button @click="toggle2()">
+        <button @click="toggleDrawer()">
           X
         </button>
-        <h3 class="py-2 text-lg font-serif">
+        <h3 class="py-2 text-lg">
           Your Language
         </h3>
         <select
@@ -56,8 +57,8 @@
             <p>Say Words</p>
           </div>
           <Toggle
-            :model-value="isSpeakingWords"
-            @update:model-value="isSpeakingWords = $event"
+            :model-value="shouldSpeakWords"
+            @update:model-value="shouldSpeakWords = $event"
           />
         </div>
         <div class="px-3 py-2 flex items-center justify-between">
@@ -65,8 +66,8 @@
             <p>Say Sentences</p>
           </div>
           <Toggle
-            :model-value="isSpeakingSentences"
-            @update:model-value="isSpeakingSentences = $event"
+            :model-value="shouldSpeakSentences"
+            @update:model-value="shouldSpeakSentences = $event"
           />
         </div>
         <div v-if="!hideActivationProgress">
@@ -93,7 +94,6 @@
             </span>
             <span v-if="!activationSuccess && isEnabled">Error</span>
           </button>
-          <progress-bar :value="progressValue" />
         </div>
       </div>
     </aside>
@@ -105,29 +105,24 @@ import $ from 'jquery'
 import { ref } from 'vue'
 import { onClickOutside, useMutationObserver, useToggle } from '@vueuse/core'
 import browser from 'webextension-polyfill'
-import ProgressBar from '../components/ProgressBar.vue'
 import 'virtual:windi.css'
+
 import getLanguageDefaults from '../logic/detectLanguage'
 import Toggle from '../components/Toggle.vue'
 import Language from '../types/Language'
 import interactiveWords from './interact'
 import contentEnable from './dom'
+
 const UNIQUE_INTERFACE_ID = 'a4efr4vrtewfw2efasa'
-console.log('setup content')
-
-// const uniqueClass = '.x4Q7wcLsK28K1rg21QjmnL'
-
 const showExtension = ref(false)
+const isEnabled = ref(false)
+const [isOpen, toggleDrawer] = useToggle(false)
+const showProgressBar = ref(false)
 const hideActivationProgress = ref(false)
 const progressValue = ref(0)
-const [show, toggle] = useToggle(false)
-const [isOpen, toggle2] = useToggle(false)
-const isEnabled = ref(false)
 const isActivatingOnPage = ref(false)
 const activationSuccess = ref(false)
 const currentTabLanguage = ref('')
-const isSpeakingWords = ref(false)
-const isSpeakingSentences = ref(false)
 const speechVoices = ref<[]>([])
 const shouldSpeakWords = ref(false)
 const shouldSpeakSentences = ref(false)
@@ -161,18 +156,24 @@ init()
 
 const activateContent = async() => {
   if (!userLanguage.value) await init()
+  showProgressBar.value = true
   isActivatingOnPage.value = true
   interactiveWords(
-    currentTabLanguage.value,
-    userLanguage.value,
-    shouldSpeakWords.value,
-    shouldSpeakSentences.value,
+    currentTabLanguage,
+    userLanguage,
+    shouldSpeakWords,
+    shouldSpeakSentences,
   )
-  toggle2()
+  toggleDrawer()
   await contentEnable(progressValue)
+
+  setTimeout(() => {
+    showProgressBar.value = false
+  }, 200)
 
   activationSuccess.value = true
   isEnabled.value = true
+
   setTimeout(() => {
     isActivatingOnPage.value = false
   }, 200)
@@ -181,30 +182,30 @@ const activateContent = async() => {
   // }, 600)
   // setTimeout(() => {
   // console.log('activateContent')
-  // toggle2()
+  // toggleDrawer()
   // }, 1000)
-  // toggle2()
+  // toggleDrawer()
 }
 
 setTimeout(() => {
   // wait for code to be injected and parsed
   showExtension.value = true
   setTimeout(() => {
-    toggle2()
+    toggleDrawer()
   }, 300)
 }, 50)
 
 browser.runtime.onMessage.addListener(async(request) => {
   if (request.action === 'toggle.sidebar') {
     console.log('toggle')
-    toggle2()
+    toggleDrawer()
   }
 
   if (request.action === 'content.activate')
     console.log('activate')
 
   // setTimeout(() => {
-  //   toggle2()
+  //   toggleDrawer()
   // }, 1000)
 
   if (request.action === 'translations.activate') {
@@ -217,12 +218,12 @@ browser.runtime.onMessage.addListener(async(request) => {
   if (request.action === 'content.language.set') {
     userLanguage.value = request.userLanguage
     currentTabLanguage.value = request.currentTabLanguage
-    interactiveWords(
-      currentTabLanguage.value,
-      userLanguage.value,
-      shouldSpeakWords.value,
-      shouldSpeakSentences.value,
-    )
+    // interactiveWords(
+    //   currentTabLanguage.value,
+    //   userLanguage.value,
+    //   shouldSpeakWords.value,
+    //   shouldSpeakSentences.value,
+    // )
   }
   if (request.action === 'content.language.detect') {
     console.log('content.language.detect', request)
@@ -259,7 +260,7 @@ const setLanguagePairs = async() => {
 }
 const target = ref(null)
 
-onClickOutside(target, (event) => { if (isOpen.value) toggle2() })
+onClickOutside(target, (event) => { if (isOpen.value) toggleDrawer() })
 
 // TODO: watch dom for changes and apply learning to new textnodes
 // const observer = new MutationObserver((mutationsList, observer) => {
