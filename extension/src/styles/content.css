@@ -1,6 +1,11 @@
 /* Global CSS used within your BEX. This is not preprocessed so this has to be pure CSS. */
 #a4efr4vrtewfw2efasa {
-  z-index: 99999999;
+  /* TODO: script to find highest z-index */
+  z-index: 999999999999999;  
+}
+#a4efr4vrtewfw2efasa aside {
+  /* TODO: script to find highest z-index */
+  z-index: 999999999999999;  
   /* border not working in windi for some reason so setting manually here */
   border-left: solid 2px #CCC;
 }
@@ -18,7 +23,7 @@
 }
 .wordHighlight .original:hover {
   background-color: #109e98;
-  box-shadow: -0.2em -0.1em 0 #109e98, 0.2em 0.1em 0 #109e98 ,0.2em -0.1em 0 #109e98 ,-0.2em 0.1em 0 #109e98;
+  box-shadow: -4px -2px 0 #109e98, 4px 2px 0 #109e98 ,4px -2px 0 #109e98 ,-4px 2px 0 #109e98;
   color: #fff;
 }
 .wordHighlight .translation,
@@ -28,12 +33,12 @@
 }
 .wordHighlight.active .original {
   background-color: #109e98;
-  box-shadow: -0.2em -0.1em 0 #109e98, 0.2em 0.1em 0 #109e98 ,0.2em -0.1em 0 #109e98 ,-0.2em 0.1em 0 #109e98;
+  box-shadow: -4px -2px 0 #109e98, 4px 2px 0 #109e98 ,4px -2px 0 #109e98 ,-4px 2px 0 #109e98;
   color: #fff;
 }
 .wordHighlight.active .translation {
   color: #066965 !important;
-  background-color: #fff;
+  /* background-color: #fff; */
   display: inherit;
 }
 .wordHighlight .translation {
@@ -49,13 +54,13 @@
 }
 .wordRangeHighlight .range-original {
   background-color: #109e98;
-  box-shadow: -0.2em -0.1em 0 #109e98, 0.2em 0.1em 0 #109e98 ,0.2em -0.1em 0 #109e98 ,-0.2em 0.1em 0 #109e98;
+  box-shadow: -4px -2px 0 #109e98, 4px 2px 0 #109e98 ,4px -2px 0 #109e98 ,-4px 2px 0 #109e98;
   display: inline-block;
   text-align: center;
 }
 .wordRangeHighlight .range-translation {
   color: #066965 !important;
-  background-color: #fff;
+  /* background-color: #fff; */
   width: 100%;
   /* transition: all 0.2s linear; */
 }
@@ -81,7 +86,7 @@
 .sentenceHighlight .originalSentence.hover {
   color: #fff;
   background-color: #d53f8c;
-  box-shadow: -0.2em -0.1em 0 #d53f8c, 0.2em 0.1em 0 #d53f8c ,0.2em -0.1em 0 #d53f8c ,-0.2em 0.1em 0 #d53f8c;
+  box-shadow: -4px -0.1em 0 #d53f8c, 4px 0.1em 0 #d53f8c ,4px -0.1em 0 #d53f8c ,-4px 0.1em 0 #d53f8c;
 }
 .sentenceHighlight .translationSentence {
   /* background-color: #fff; */
@@ -106,7 +111,7 @@
   vertical-align: middle;
 }
 .translateSentenceButton .svg-icon,
-.translateSentenceButton svg {
+.translateSentenceButton svg, .golink svg{
   height: 0.7em;
   width: 0.7em;
   

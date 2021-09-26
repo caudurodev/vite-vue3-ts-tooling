@@ -4,6 +4,11 @@ import Mark from 'mark.js'
 import 'transition-style'
 
 const UNIQUE_INTERFACE_ID = 'a4efr4vrtewfw2efasa'
+const TRANSLATE_SVG_ICON = `
+<svg class="svg-icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 5h12M9 3v2m1.048 9.5A18.022 18.022 0 016.412 9m6.088 9h7M11 21l5-10 5 10M12.751 5C11.783 10.77 8.07 15.61 3 18.129" />
+</svg>
+`
 
 const uniqueID = () => {
   return Math.floor(Math.random() * Date.now())
@@ -42,11 +47,7 @@ const wrapSentences = async(s, node, sentenceId = 0, delay = 0) => {
               $(e).find('.originalSentence').after(`
                     <span class="translationSentence">
                       <span class="translationSentenceText"></span>
-                      <button class="translateSentenceButton">
-                        <svg class="svg-icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 5h12M9 3v2m1.048 9.5A18.022 18.022 0 016.412 9m6.088 9h7M11 21l5-10 5 10M12.751 5C11.783 10.77 8.07 15.61 3 18.129" />
-                        </svg>
-                      </button>
+                      <button class="translateSentenceButton">${TRANSLATE_SVG_ICON}</button>
                     </span>
                     `)
             }

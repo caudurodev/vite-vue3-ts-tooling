@@ -1,95 +1,104 @@
+from flask import Flask, request
+import redis
 import time
 import spacy
 import requests
 import json
-from dictcc import Dict
-from wiktionaryparser import WiktionaryParser
+# from dictcc import Dict
+# from wiktionaryparser import WiktionaryParser
+# from deep_translator import (GoogleTranslator,
+#                              MicrosoftTranslator,
+#                              PonsTranslator,
+#                              LingueeTranslator,
+#                              MyMemoryTranslator,
+#                              YandexTranslator,
+#                              PapagoTranslator,
+#                              DeepL,
+#                              QCRI,
+#                              single_detection,
+#                              batch_detection
+#                              )
 
-import redis
-from flask import Flask
 
 app = Flask(__name__)
-# cache = redis.Redis(host='redis', port=6379)
+nlp = spacy.load("de_core_news_lg")
 
 
-# def get_hit_count():
-#     retries = 5
-#     while True:
-#         try:
-#             return cache.incr('hits')
-#         except redis.exceptions.ConnectionError as exc:
-#             if retries == 0:
-#                 raise exc
-#             retries -= 1
-#             time.sleep(0.5)
+@app.route('/translate', methods=['POST'])
+def translate():
+    word = request.form.get('word')
+    sentence = request.form.get('sentence')
+    sourceLang = request.form.get('sourceLang')
+    targetLang = request.form.get('targetLang')
 
+    if None in (word, sentence, sourceLang, targetLang):
+        return 'Incorrect Params', 422
 
-@app.route('/')
-def hello():
-    # count = get_hit_count()
-    nlp = spacy.load("de_core_news_sm")
-    sentence = 'Gleichzeitig lockt Kiew Partytouristen aus ganz Europa an.'
-    word = 'herrscht'
-    # doc = nlp(sentence)
-    # tokens = []
-    # text_tokens = []
+    word_doc = nlp(word)
+    word_tokens = []
+    for token in word_doc:
+        word_tokens.append({
+            'text': token.text,
+            'pos': token.pos_,
+            'lemma': token.lemma_
+        })
 
-    # for token in doc:
-    #     print(token.text)
-    #     text_tokens.append(token)
-    #     tokens.append({
-    #         'text': token.text,
-    #         'pos': token.pos_,
-    #         'lemma': token.lemma_
-    #     })
+    doc = nlp(sentence)
+    tokens = []
+    text_tokens = []
+
+    for token in doc:
+        text_tokens.append(token.text)
+        # tokens.append(token)
+        tokens.append({
+            'text': token.text,
+            'pos': token.pos_,
+            'lemma': token.lemma_
+        })
     # print(token.text, token.lemma_, token.pos_, token.tag_, token.dep_,
     #       token.shape_, token.is_alpha, token.is_stop)
 
-    # triples = [text_tokens[i:i + 3]
-    #            for i in range(len(text_tokens) - 2)]
+    triples = [' '.join(text_tokens[i:i + 3])
+               for i in range(len(text_tokens) - 2)]
 
-    # print('tokens')
-    # print(tokens)
-    # print('triples')
-    # print(triples)
+    triples_with_term = []
+    for triple in triples:
+        if word in triple:
+            triples_with_term.append(triple)
 
-    translator = Dict()
-    result = translator.translate(
-        word, from_language="de", to_language="en")
+    separator = 'a123a'
+    translation_string = f"{word} {separator} {separator} {sentence} {f' {separator} '.join(triples_with_term)}"
+    translated_string = ''
+    if triples_with_term:
+        r = requests.post('http://libretranslate:5000/translate', data={
+            'q': translation_string,
+            'source': sourceLang,
+            'target': targetLang,
+        })
+        translated_string = r.json()['translatedText']
 
-    r = requests.post('http://libretranslate:5000/translate', data={
-        'q': word,
-        'source': 'de',
-        'target': 'en',
-    })
-    translated_word = r.json()['translatedText']
-    # print(r.json())
-    print('doc')
-
-    # return f'{r.json()}Helssslo World! I have been seen {count} times.\n'
-    # print(r.json()['translatedText'])
-    # return r.json()
-    # parser = WiktionaryParser()
-    # parser.set_default_language('english')
-    # word_parsed = parser.fetch(word, 'german')
-
-    # print('word_parsed')
-    # print(word_parsed)
-
-    in_tuples = False
-    to_search = translated_word
-    for translation_tuple in result.translation_tuples[:4]:
-        if(to_search.lower() in translation_tuple[1].lower()):
-            in_tuples = True
+    translated_list = []
+    for translation in translated_string.split(f'{separator}'):
+        clean = translation.strip()
+        if clean:
+            translated_list.append(clean)
 
     return {
-        'original': word,
-        'translatedText': translated_word,
-        'found': in_tuples,
-        # 'tokens': tokens,
-        # 'text_tokens': text_tokens,
-        # 'triples': triples,
-        'dict': result.translation_tuples[:4]
+        'requested': {
+            'word': word,
+            'sentence': sentence,
+            'targetLang': targetLang,
+            'sourceLang': sourceLang,
+        },
+        'translations': {
+            'word': {
+                'translation': translated_list[0],
+                'token': word_tokens
+            },
+            'sentence': translated_list[1],
+        },
+        'translated_string': translated_string,
+        'translated_list': translated_list,
     }
 
 

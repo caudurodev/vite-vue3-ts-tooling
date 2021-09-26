@@ -4,6 +4,12 @@ import { text2Speech } from '../logic/TextToSpeech'
 // const SERVER_URL = 'http://192.168.1.11:6565'
 const SERVER_URL = 'https://translate.cauduro.dev'
 
+const LINK_SVG_ICON = `
+<svg aria-hidden="true" fill="none" role="img" xmlns="http://www.w3.org/2000/svg" stroke="currentColor" viewBox="0 0 512 512">
+  <path fill="currentColor" d="M432,320H400a16,16,0,0,0-16,16V448H64V128H208a16,16,0,0,0,16-16V80a16,16,0,0,0-16-16H48A48,48,0,0,0,0,112V464a48,48,0,0,0,48,48H400a48,48,0,0,0,48-48V336A16,16,0,0,0,432,320ZM488,0h-128c-21.37,0-32.05,25.91-17,41l35.73,35.73L135,320.37a24,24,0,0,0,0,34L157.67,377a24,24,0,0,0,34,0L435.28,133.32,471,169c15,15,41,4.5,41-17V24A24,24,0,0,0,488,0Z"></path>
+</svg>
+`
+
 let popupTimeout = null
 const sentencePopupTimeout = null
 const lastSentence = { src: null, dest: null, id: null }
@@ -55,6 +61,7 @@ const rangeify = (activeWords) => {
 }
 
 const mergeSelectedWords = (evt, currentTabLanguage, userLanguage, shouldSpeakWords, shouldSpeakSentences) => {
+  evt.preventDefault() // stops links
   const sentenceEl = $(evt.target).closest('.sentenceHighlight')
   const activeWords = getActiveWords(sentenceEl)
   const mergeWords = rangeify(activeWords)
@@ -79,15 +86,11 @@ const mergeSelectedWords = (evt, currentTabLanguage, userLanguage, shouldSpeakWo
         }
         $(`span[data-word-id=${Number(r[0])}]`).before(
           `<span data-range-id="${rangeID}" class="wordRangeHighlight">
-                                    <span class="range-translation"></span>
-                                    <span class="range-original">
-                                    ${wordElements
-    .map(
-      e => `${$(e).clone().prop('outerHTML')} `,
-    )
-    .join('')}
-                                      </span>
-                                </span>`,
+              <span class="range-translation"></span>
+              <span class="range-original">
+              ${wordElements.map(e => `${$(e).clone().prop('outerHTML')} `).join('')}
+              </span>
+          </span>`,
         )
         wordElements.forEach((el) => {
           $(el).remove()
@@ -224,13 +227,15 @@ const interactiveWords = (currentTabLanguage, userLanguage, shouldSpeakWords, sh
   })
 
   $(document).on('click', '.wordHighlight', (evt) => {
+    evt.preventDefault() // stops links so user can translate
     console.log('interactiveWords wordHighlight', currentTabLanguage.value, userLanguage.value)
     const linkHref = $(evt.target).closest('a').attr('href')
-    if (linkHref && $(evt.target).hasClass('golink')) {
-      $(this).trigger('click')
+    console.log('golink trigger', $(evt.target).find('.golink').length > 0)
+    if (linkHref && $(evt.target).find('a .golink').length > 0) {
+      console.log('golink trigger', $(evt.target).find('.golink').length > 0)
+      // $(this).trigger('click')
       return
     }
-    evt.preventDefault() // stops links so user can translate
 
     const mainWrapper = $(evt.currentTarget)
     if (mainWrapper.find('learnsentence').length) return
@@ -263,9 +268,8 @@ const interactiveWords = (currentTabLanguage, userLanguage, shouldSpeakWords, sh
         .then((data) => {
           if (data.translatedText) {
             const wordContent = linkHref
-              ? `${data.translatedText} <a href="${linkHref}" class="golink">go</a>`
+              ? `${data.translatedText} <a href="${linkHref}" class="golink">${LINK_SVG_ICON}</a>`
               : data.translatedText
-            console.log('wordContent', wordContent)
             $(`span[data-word-id=${wordClickedId}]`)
               .find('.translation')
               .html(wordContent)

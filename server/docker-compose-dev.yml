@@ -1,17 +1,17 @@
 version: '3.9'
 services:
-  # web:
-  #   build: .
-  #   volumes:
-  #     - "./app:/app"
-  #   environment:
-  #     FLASK_DEBUG: 1
-  #     PYTHONUNBUFFERED: 1
-  #     # FLASK_APP: ./app.py
-  #   ports:
-  #     - "5001:5000"
-  #   networks:
-  #     - language-net
+  web:
+    build: .
+    volumes:
+      - "./app:/app"
+    environment:
+      FLASK_DEBUG: 1
+      PYTHONUNBUFFERED: 1
+      # FLASK_APP: ./app.py
+    ports:
+      - "5001:5000"
+    networks:
+      - language-net
   # redis:
   #   image: "redis:alpine"
   #   networks:
@@ -25,6 +25,15 @@ services:
       - 5000:5000
     networks:
       - language-net
+  # languagetool:
+  #   image: erikvl87/languagetool
+  #   restart: always
+  #   environment:
+  #     - LT_CHAR_LIMIT=50000000
+  #   ports:
+  #     - 8010:8010
+  #   networks:
+  #     - language-net
   # spacyapien:
   #   image: jgontrum/spacyapi:en_v2
   #   ports:
@@ -35,6 +44,8 @@ services:
   #   ports:
   #     - "8082:80"
   #   restart: always
+  
+  
 networks:
   language-net:
     driver: bridge

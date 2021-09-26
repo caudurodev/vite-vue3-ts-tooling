@@ -1,3 +1,3 @@
 import './main.css'
-import './content-css.css'
+import './content.css'
 import 'virtual:windi.css'

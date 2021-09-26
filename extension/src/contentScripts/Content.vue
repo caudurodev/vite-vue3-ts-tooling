@@ -1,5 +1,5 @@
 <template>
-  <div>
+  <div :id="UNIQUE_INTERFACE_ID">
     <transition name="fade">
       <div v-if="showProgressBar" class="fixed top-0 left-0 w-full bg-white" style="z-index:999999999999999999999999">
         <div :style="`width:${progressValue}vw`" class="bg-pink-500 h-3"></div>
@@ -7,7 +7,6 @@
     </transition>
     <aside
       v-if="showExtension"
-      :id="UNIQUE_INTERFACE_ID"
       ref="target"
       class="transform top-0 right-0 bg-white fixed h-full overflow-auto ease-in-out duration-200"
       :class="{
@@ -108,7 +107,6 @@ import browser from 'webextension-polyfill'
 import 'virtual:windi.css'
 
 import getLanguageDefaults from '../logic/detectLanguage'
-import Toggle from '../components/Toggle.vue'
 import Language from '../types/Language'
 import interactiveWords from './interact'
 import contentEnable from './dom'
@@ -165,20 +163,97 @@ const activateContent = async() => {
     shouldSpeakSentences,
   )
   toggleDrawer()
-  await contentEnable(progressValue)
+  // await contentEnable(progressValue)
 
-  setTimeout(() => {
-    showProgressBar.value = false
-  }, 200)
+  // capture all clicks
+  // $(document).on('click', (evt) => {
+  //   evt.preventDefault() // stops links
+  //   const el = evt.target
+  //   console.log('click text', $(el).text())
+  //   console.log('click el', el)
+  // })
 
-  activationSuccess.value = true
-  isEnabled.value = true
+  $(document).on('click', (e) => {
+    // don't clickthrough to link
+    e.preventDefault()
+    const sel = window.getSelection()
+    const str = sel.anchorNode.nodeValue
+    const len = str.length
+    let a = b = sel.anchorOffset
+    while (str[a] !== ' ' && a--) {} if (str[a] == ' ') a++ // start of word
+    while (str[b] !== ' ' && b++ < len) {} // end of word+1
+    a = a > 0 ? a : 0
+    b = b < str.length ? b : str.length
 
-  setTimeout(() => {
-    isActivatingOnPage.value = false
-  }, 200)
+    console.log('word', str.substring(a, b), a, b)
+    const range = sel.getRangeAt(0)
+    range.setStart(sel.anchorNode, a)
+    range.setEnd(sel.anchorNode, b)
+
+    let sentA = sentB = sel.anchorOffset
+    const endOfSentenceChars = ['.', '!', '?', ';', ':']
+    if (endOfSentenceChars.some(v => str.includes(v))) {
+      while (!endOfSentenceChars.some(v => str[sentA].includes(v)) && sentA--) {} if (str[sentA] == ' ') sentA++ // start of word
+      while (!endOfSentenceChars.some(v => str[sentB].includes(v)) && sentB++ < len) {} // end of word+1
+    }
+    else {
+      sentA = 0
+      sentB = str.length
+    }
+
+    sentA = sentA > 0 ? sentA : 0
+    sentB = sentB <= str.length ? sentB : str.length - 1
+    const fullText = $(e.target).text()
+    console.log('sentence', str.substring(sentA, sentB + 1))
+    console.log('fullText', fullText)
+
+    // select sentence
+    range.setStart(sel.anchorNode, sentA)
+    range.setEnd(sel.anchorNode, sentB)
+  })
+
+  // $(document).on('click', (e) => {
+  //   e.preventDefault()
+  //   const selection = window.getSelection()
+  //   if (!selection || selection.rangeCount < 1) return true
+  //   const range = selection.getRangeAt(0)
+  //   const node = selection.anchorNode
+  //   const word_regexp = /^\w*$/
+  //   // const word_regexp = /^\([äöüÄÖÜß\w]*$/
+  //   // const word_regexp = /\b([äöüÄÖÜß\w]+)\b/g
+
+  //   // Extend the range backward until it matches word beginning
+  //   while ((range.startOffset > 0) && range.toString().match(word_regexp))
+  //     range.setStart(node, (range.startOffset - 1))
+
+  //   // Restore the valid word match after overshooting
+  //   if (!range.toString().match(word_regexp))
+  //     range.setStart(node, range.startOffset + 1)
+
+  //   // Extend the range forward until it matches word ending
+  //   while ((range.endOffset < node.length) && range.toString().match(word_regexp))
+  //     range.setEnd(node, range.endOffset + 1)
+
+  //   // Restore the valid word match after overshooting
+  //   if (!range.toString().match(word_regexp))
+  //     range.setEnd(node, range.endOffset - 1)
+
+  //   const word = range.toString()
+  //   console.log('word', word)
+  // })
+
   // setTimeout(() => {
-  hideActivationProgress.value = true
+  //   showProgressBar.value = false
+  // }, 200)
+
+  // activationSuccess.value = true
+  // isEnabled.value = true
+
+  // setTimeout(() => {
+  //   isActivatingOnPage.value = false
+  // }, 200)
+  // // setTimeout(() => {
+  // hideActivationProgress.value = true
   // }, 600)
   // setTimeout(() => {
   // console.log('activateContent')
@@ -278,5 +353,5 @@ onClickOutside(target, (event) => { if (isOpen.value) toggleDrawer() })
 console.log('setup content end')
 </script>
 
-<style src="../styles/fonts.css" ></style>
-<style src="../styles/content.css" ></style>
+<style src="../styles/fonts.css"></style>
+<style src="../styles/content.css"></style>

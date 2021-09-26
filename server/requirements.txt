@@ -3,6 +3,7 @@ redis
 requests
 spacy
 dict.cc.py
-textblob
 py-openthesaurus
+deep_translator
 wiktionaryparser
+textblob-de
