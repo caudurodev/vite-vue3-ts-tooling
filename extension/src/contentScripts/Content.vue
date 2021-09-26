@@ -176,36 +176,44 @@ const activateContent = async() => {
   $(document).on('click', (e) => {
     // don't clickthrough to link
     e.preventDefault()
+
     const sel = window.getSelection()
+    if (!sel.anchorNode?.nodeValue) return
+
     const str = sel.anchorNode.nodeValue
     const len = str.length
     let a = b = sel.anchorOffset
-    while (str[a] !== ' ' && a--) {} if (str[a] == ' ') a++ // start of word
+    while (str[a] !== ' ' && a--) {} if (str[a] === ' ') a++ // start of word
     while (str[b] !== ' ' && b++ < len) {} // end of word+1
     a = a > 0 ? a : 0
     b = b < str.length ? b : str.length
 
-    console.log('word', str.substring(a, b), a, b)
+    const word = str.substring(a, b)
+    console.log('word', word)
+
     const range = sel.getRangeAt(0)
-    range.setStart(sel.anchorNode, a)
-    range.setEnd(sel.anchorNode, b)
+    // range.setStart(sel.anchorNode, a)
+    // range.setEnd(sel.anchorNode, b)
 
     let sentA = sentB = sel.anchorOffset
     const endOfSentenceChars = ['.', '!', '?', ';', ':']
     if (endOfSentenceChars.some(v => str.includes(v))) {
-      while (!endOfSentenceChars.some(v => str[sentA].includes(v)) && sentA--) {} if (str[sentA] == ' ') sentA++ // start of word
-      while (!endOfSentenceChars.some(v => str[sentB].includes(v)) && sentB++ < len) {} // end of word+1
+      while (!endOfSentenceChars.some(v => str[sentA].includes(v)) && sentA >= 0 && sentA--) {}
+      while (!endOfSentenceChars.some(v => str[sentB].includes(v)) && sentB++ < len) {} // end of sentence+1
+      sentB = sentB + 1 // include punctuation
     }
     else {
       sentA = 0
       sentB = str.length
     }
+    sentA = sentA > 0 ? sentA + 1 : 0
+    // sentB = sentB <= str.length ? sentB : str.length - 1
+    // const fullText = $(e.target).text()
 
-    sentA = sentA > 0 ? sentA : 0
-    sentB = sentB <= str.length ? sentB : str.length - 1
-    const fullText = $(e.target).text()
-    console.log('sentence', str.substring(sentA, sentB + 1))
-    console.log('fullText', fullText)
+    const sentence = str.substring(sentA, sentB)
+
+    console.log('sentence', `"${sentence.trim()}"`)
+    // console.log('fullText', fullText)
 
     // select sentence
     range.setStart(sel.anchorNode, sentA)
