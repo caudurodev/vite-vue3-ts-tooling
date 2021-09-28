@@ -3,12 +3,15 @@
 import browser from 'webextension-polyfill'
 
 const sendMessageToActiveTab = async(message) => {
+  console.log('sendMessageToActiveTab 1')
   browser.tabs
     .query({ currentWindow: true, active: true })
     .then(([tab]) => {
+      console.log('sendMessageToActiveTab2')
       if (tab && tab.id)browser.tabs.sendMessage(tab.id, message)
     })
     .catch(e => console.log('message error', e))
+  console.log('sendMessageToActiveTab 1')
 }
 
 let activeTabs: number[] = []
@@ -36,8 +39,9 @@ browser.browserAction.onClicked.addListener(async(activeTab) => {
 
     console.log('activating tab id', tabId)
     activeTabs.push(tabId)
-    browser.tabs.executeScript(undefined, { file: 'dist/contentScripts/index.global.js' })
-    browser.tabs.insertCSS({ file: 'dist/contentScripts/style.css' })
+    browser.tabs.executeScript({ file: '/dist/contentScripts/index.global.js' }).catch(e => console.log('file js error', e))
+    browser.tabs.insertCSS({ file: '/dist/contentScripts/style.css' }).catch(e => console.log('file css error', e))
+    console.log('injected files')
   }
   else {
     console.log('already active tab id', tabId)

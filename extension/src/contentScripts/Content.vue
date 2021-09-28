@@ -108,8 +108,10 @@ import 'virtual:windi.css'
 
 import getLanguageDefaults from '../logic/detectLanguage'
 import Language from '../types/Language'
+import MainApp from './hover'
 import interactiveWords from './interact'
 import contentEnable from './dom'
+console.log('content')
 
 const UNIQUE_INTERFACE_ID = 'a4efr4vrtewfw2efasa'
 const showExtension = ref(false)
@@ -140,15 +142,21 @@ const userLanguage = ref(
 )
 
 const init = async() => {
+  console.log('started init')
   const defaults = await getLanguageDefaults()
   currentTabLanguage.value = defaults.currentTabLanguage
   userLanguage.value = defaults.userLanguage
+  console.log('hover 1 init')
+  MainApp.init()
+  console.log('hover 2 init')
   // update popup with detected languages
+
   // browser.runtime.sendMessage({
   //   action: 'bg.language.detect',
   //   currentTabLanguage: currentTabLanguage.value,
   //   userLanguage: userLanguage.value,
   // })
+  console.log('finished init')
 }
 init()
 
@@ -173,52 +181,128 @@ const activateContent = async() => {
   //   console.log('click el', el)
   // })
 
-  $(document).on('click', (e) => {
-    // don't clickthrough to link
-    e.preventDefault()
+  // function getWordAtPoint(elem, x, y) {
+  //   if (elem.nodeType == elem.TEXT_NODE) {
+  //     var range = elem.ownerDocument.createRange()
+  //     range.selectNodeContents(elem)
+  //     let currentPos = 0
+  //     const endPos = range.endOffset
+  //     while (currentPos + 1 < endPos) {
+  //       range.setStart(elem, currentPos)
+  //       range.setEnd(elem, currentPos + 1)
+  //       if (range.getBoundingClientRect().left <= x && range.getBoundingClientRect().right >= x
+  //        && range.getBoundingClientRect().top <= y && range.getBoundingClientRect().bottom >= y) {
+  //         range.expand('word')
+  //         const ret = range.toString()
+  //         range.detach()
+  //         return (ret)
+  //       }
+  //       currentPos += 1
+  //     }
+  //   }
+  //   else {
+  //     for (let i = 0; i < elem.childNodes.length; i++) {
+  //       var range = elem.childNodes[i].ownerDocument.createRange()
+  //       range.selectNodeContents(elem.childNodes[i])
+  //       if (range.getBoundingClientRect().left <= x && range.getBoundingClientRect().right >= x
+  //        && range.getBoundingClientRect().top <= y && range.getBoundingClientRect().bottom >= y) {
+  //         range.detach()
+  //         return (getWordAtPoint(elem.childNodes[i], x, y))
+  //       }
+  //       else {
+  //         range.detach()
+  //       }
+  //     }
+  //   }
+  //   return (null)
+  // }
+  // $(document).on('mousemove', (e) => {
+  //   // $(document).on('click', (e) => {
+  //   // don't clickthrough to link
+  //   // console.log(e)
+  //   const text = $(e.target).text()
+  //   if (text) {
+  //     console.log(text)
+  //     console.log('page', e.pageX, e.pageY, getWordAtPoint(e.target, e.pageX, e.pageY))
+  //   }
+  // })
 
-    const sel = window.getSelection()
-    if (!sel.anchorNode?.nodeValue) return
+  // $(document).on('click', '*', (e) => {
+  // // $(document).on('click', (e) => {
+  //   // don't clickthrough to link
+  //   e.preventDefault()
+  //   e.stopPropagation()
+  //   $('*').css({ cursor: 'pointer' })
+  //   const linkHref = $(e.target).closest('a').attr('href')
+  //   let range
+  //   if (linkHref) {
+  //     console.log('islink', linkHref, $(e.target)[0])
+  //     range = document.createRange()
+  //     range.selectNode($(e.target)[0])
 
-    const str = sel.anchorNode.nodeValue
-    const len = str.length
-    let a = b = sel.anchorOffset
-    while (str[a] !== ' ' && a--) {} if (str[a] === ' ') a++ // start of word
-    while (str[b] !== ' ' && b++ < len) {} // end of word+1
-    a = a > 0 ? a : 0
-    b = b < str.length ? b : str.length
+  //     const wrapLinkElement = document.createElement('word')
+  //     wrapLinkElement.style.backgroundColor = 'green'
+  //     range.surroundContents(wrapLinkElement)
 
-    const word = str.substring(a, b)
-    console.log('word', word)
+  //     console.log('selected with range', $(e.target).text())
+  //     return
+  //   }
 
-    const range = sel.getRangeAt(0)
-    // range.setStart(sel.anchorNode, a)
-    // range.setEnd(sel.anchorNode, b)
+  //   const sel = window.getSelection()
+  //   if (!sel.anchorNode?.nodeValue) return
 
-    let sentA = sentB = sel.anchorOffset
-    const endOfSentenceChars = ['.', '!', '?', ';', ':']
-    if (endOfSentenceChars.some(v => str.includes(v))) {
-      while (!endOfSentenceChars.some(v => str[sentA].includes(v)) && sentA >= 0 && sentA--) {}
-      while (!endOfSentenceChars.some(v => str[sentB].includes(v)) && sentB++ < len) {} // end of sentence+1
-      sentB = sentB + 1 // include punctuation
-    }
-    else {
-      sentA = 0
-      sentB = str.length
-    }
-    sentA = sentA > 0 ? sentA + 1 : 0
-    // sentB = sentB <= str.length ? sentB : str.length - 1
-    // const fullText = $(e.target).text()
+  //   const str = sel.anchorNode.nodeValue
+  //   const len = str.length
+  //   let a = b = sel.anchorOffset
+  //   while (str[a] !== ' ' && a--) {} if (str[a] === ' ') a++ // start of word
+  //   while (str[b] !== ' ' && b++ < len) {} // end of word+1
+  //   a = a > 0 ? a : 0
+  //   b = b < str.length ? b : str.length
 
-    const sentence = str.substring(sentA, sentB)
+  //   const word = str.substring(a, b)
+  //   console.log('word', word)
 
-    console.log('sentence', `"${sentence.trim()}"`)
-    // console.log('fullText', fullText)
+  //   range = sel.getRangeAt(0)
 
-    // select sentence
-    range.setStart(sel.anchorNode, sentA)
-    range.setEnd(sel.anchorNode, sentB)
-  })
+  //   setTimeout(() => {
+  //     range.setStart(sel.anchorNode, a)
+  //     range.setEnd(sel.anchorNode, b)
+
+  //     const wrapWordElement = document.createElement('word')
+  //     wrapWordElement.style.backgroundColor = 'blue'
+  //     range.surroundContents(wrapWordElement)
+  //   }, 500)
+
+  //   let sentA = sentB = sel.anchorOffset
+  //   const endOfSentenceChars = ['.', '!', '?', ';', ':']
+  //   if (endOfSentenceChars.some(v => str.includes(v))) {
+  //     while (!endOfSentenceChars.some(v => str[sentA].includes(v)) && sentA >= 0 && sentA--) {}
+  //     while (!endOfSentenceChars.some(v => str[sentB].includes(v)) && sentB++ < len) {} // end of sentence+1
+  //     sentB = sentB + 1 // include punctuation
+  //   }
+  //   else {
+  //     sentA = 0
+  //     sentB = str.length
+  //   }
+  //   sentA = sentA > 0 ? sentA + 1 : 0
+  //   // sentB = sentB <= str.length ? sentB : str.length - 1
+  //   // const fullText = $(e.target).text()
+
+  //   // const fullText = $(e.target).text().replace(new RegExp(word), '<match style="background-color:red">$&</match>')
+  //   // $(e.target).html(`<sentence style="background-color:pink">${fullText}<sentence>`)
+
+  //   const sentence = str.substring(sentA, sentB)
+  //   console.log('sentence', `"${sentence.trim()}"`)
+  //   // console.log('fullText', fullText)
+
+  //   // select sentence
+  //   range.setStart(sel.anchorNode, sentA)
+  //   range.setEnd(sel.anchorNode, sentB)
+
+  //   const wrapSentenceElement = document.createElement('sentence')
+  //   wrapSentenceElement.style.backgroundColor = 'red'
+  //   range.surroundContents(wrapSentenceElement)
+  // })
 
   // $(document).on('click', (e) => {
   //   e.preventDefault()
