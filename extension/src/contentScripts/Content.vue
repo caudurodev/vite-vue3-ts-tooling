@@ -100,19 +100,18 @@
 </template>
 
 <script setup lang="ts">
+import { ref, defineComponent, createApp } from 'vue'
 import $ from 'jquery'
-import { ref } from 'vue'
-import { onClickOutside, useMutationObserver, useToggle } from '@vueuse/core'
+import { onClickOutside, useToggle } from '@vueuse/core'
 import browser from 'webextension-polyfill'
 import 'virtual:windi.css'
 
 import getLanguageDefaults from '../logic/detectLanguage'
 import Language from '../types/Language'
+import Word from '../components/Word.vue'
 import MainApp, { WordUnderCursor } from './hover'
-// import caretRange from './caret'
 import interactiveWords from './interact'
 import contentEnable from './dom'
-
 const UNIQUE_INTERFACE_ID = 'a4efr4vrtewfw2efasa'
 const showExtension = ref(false)
 const isEnabled = ref(false)
@@ -121,6 +120,7 @@ const showProgressBar = ref(false)
 const hideActivationProgress = ref(false)
 const progressValue = ref(0)
 const isActivatingOnPage = ref(false)
+const activeWord = ref('')
 const activationSuccess = ref(false)
 const currentTabLanguage = ref('')
 const speechVoices = ref<[]>([])
@@ -164,14 +164,6 @@ $(document).on('click', (e) => {
   const { sentence } = WordUnderCursor.getFullWord(e)
   if (sentence) {
     const { text: sentenceText, start: sentenceStart, end: sentenceEnd, range: sentenceRange, textNode: sentenceTextNode, offset: sentenceOffset } = sentence
-    // const { text: wordText, start: wordStart, end: wordEnd, range: wordRange, textNode: wordTextNode, offset: wordOffset } = word
-
-    // const rangeWord = document.createRange()
-    // rangeWord.setStart(wordTextNode, wordStart)
-    // rangeWord.setEnd(wordTextNode, wordEnd + 1)
-    // const wrapWordElement = document.createElement('word')
-    // wrapWordElement.style.backgroundColor = 'green'
-    // rangeWord.surroundContents(wrapWordElement)
 
     const rangeSentence = document.createRange()
     rangeSentence.setStart(sentenceTextNode, sentenceStart)
@@ -180,22 +172,20 @@ $(document).on('click', (e) => {
     wrapSentenceElement.style.backgroundColor = 'red'
     rangeSentence.surroundContents(wrapSentenceElement)
 
-    // find word in sentence
-    console.log('sentence element', wrapSentenceElement)
-    // setTimeout(() => {
-    // console.log('timeout')
-    const { word } = WordUnderCursor.getFullWord(e)
-
-    const { text: wordText, start: wordStart, end: wordEnd, range: wordRange, textNode: wordTextNode, offset: wordOffset } = word
-
+    const { word: { text: wordText, start: wordStart, end: wordEnd, range: wordRange, textNode: wordTextNode, offset: wordOffset } } = WordUnderCursor.getFullWord(e)
+    activeWord.value = wordText
     const rangeWord = document.createRange()
     rangeWord.setStart(wordTextNode, wordStart)
     rangeWord.setEnd(wordTextNode, wordEnd + 1)
     const wrapWordElement = document.createElement('word')
     wrapWordElement.style.backgroundColor = 'green'
     rangeWord.surroundContents(wrapWordElement)
-    // }, 100)
-    console.log('word in sentence element', $(wrapSentenceElement))
+
+    const div = document.createElement('span')
+    document.body.appendChild(div)
+    const app = createApp({ extends: Word, data: () => { return { wordText: activeWord } } })
+    app.mount(div)
+    $(div).detach().appendTo(wrapWordElement)
 
     console.log(`word: "${wordText}" ${wordStart} ${wordEnd}`)
     console.log(`sentence: ${sentenceStart},${sentenceEnd} -"${sentenceText}"`)
