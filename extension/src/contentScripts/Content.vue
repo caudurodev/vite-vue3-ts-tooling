@@ -108,10 +108,10 @@ import 'virtual:windi.css'
 
 import getLanguageDefaults from '../logic/detectLanguage'
 import Language from '../types/Language'
-import MainApp from './hover'
+import MainApp, { WordUnderCursor } from './hover'
+// import caretRange from './caret'
 import interactiveWords from './interact'
 import contentEnable from './dom'
-console.log('content')
 
 const UNIQUE_INTERFACE_ID = 'a4efr4vrtewfw2efasa'
 const showExtension = ref(false)
@@ -142,13 +142,11 @@ const userLanguage = ref(
 )
 
 const init = async() => {
-  console.log('started init')
   const defaults = await getLanguageDefaults()
   currentTabLanguage.value = defaults.currentTabLanguage
   userLanguage.value = defaults.userLanguage
-  console.log('hover 1 init')
-  MainApp.init()
-  console.log('hover 2 init')
+  // MainApp.init()
+  // caretRange()
   // update popup with detected languages
 
   // browser.runtime.sendMessage({
@@ -156,211 +154,255 @@ const init = async() => {
   //   currentTabLanguage: currentTabLanguage.value,
   //   userLanguage: userLanguage.value,
   // })
-  console.log('finished init')
 }
 init()
 
-const activateContent = async() => {
-  if (!userLanguage.value) await init()
-  showProgressBar.value = true
-  isActivatingOnPage.value = true
-  interactiveWords(
-    currentTabLanguage,
-    userLanguage,
-    shouldSpeakWords,
-    shouldSpeakSentences,
-  )
-  toggleDrawer()
-  // await contentEnable(progressValue)
+$(document).on('click', (e) => {
+  e.preventDefault()
+  e.stopPropagation()
+  e.stopImmediatePropagation()
+  const { sentence } = WordUnderCursor.getFullWord(e)
+  if (sentence) {
+    const { text: sentenceText, start: sentenceStart, end: sentenceEnd, range: sentenceRange, textNode: sentenceTextNode, offset: sentenceOffset } = sentence
+    // const { text: wordText, start: wordStart, end: wordEnd, range: wordRange, textNode: wordTextNode, offset: wordOffset } = word
 
-  // capture all clicks
-  // $(document).on('click', (evt) => {
-  //   evt.preventDefault() // stops links
-  //   const el = evt.target
-  //   console.log('click text', $(el).text())
-  //   console.log('click el', el)
-  // })
+    // const rangeWord = document.createRange()
+    // rangeWord.setStart(wordTextNode, wordStart)
+    // rangeWord.setEnd(wordTextNode, wordEnd + 1)
+    // const wrapWordElement = document.createElement('word')
+    // wrapWordElement.style.backgroundColor = 'green'
+    // rangeWord.surroundContents(wrapWordElement)
 
-  // function getWordAtPoint(elem, x, y) {
-  //   if (elem.nodeType == elem.TEXT_NODE) {
-  //     var range = elem.ownerDocument.createRange()
-  //     range.selectNodeContents(elem)
-  //     let currentPos = 0
-  //     const endPos = range.endOffset
-  //     while (currentPos + 1 < endPos) {
-  //       range.setStart(elem, currentPos)
-  //       range.setEnd(elem, currentPos + 1)
-  //       if (range.getBoundingClientRect().left <= x && range.getBoundingClientRect().right >= x
-  //        && range.getBoundingClientRect().top <= y && range.getBoundingClientRect().bottom >= y) {
-  //         range.expand('word')
-  //         const ret = range.toString()
-  //         range.detach()
-  //         return (ret)
-  //       }
-  //       currentPos += 1
-  //     }
-  //   }
-  //   else {
-  //     for (let i = 0; i < elem.childNodes.length; i++) {
-  //       var range = elem.childNodes[i].ownerDocument.createRange()
-  //       range.selectNodeContents(elem.childNodes[i])
-  //       if (range.getBoundingClientRect().left <= x && range.getBoundingClientRect().right >= x
-  //        && range.getBoundingClientRect().top <= y && range.getBoundingClientRect().bottom >= y) {
-  //         range.detach()
-  //         return (getWordAtPoint(elem.childNodes[i], x, y))
-  //       }
-  //       else {
-  //         range.detach()
-  //       }
-  //     }
-  //   }
-  //   return (null)
-  // }
-  // $(document).on('mousemove', (e) => {
-  //   // $(document).on('click', (e) => {
-  //   // don't clickthrough to link
-  //   // console.log(e)
-  //   const text = $(e.target).text()
-  //   if (text) {
-  //     console.log(text)
-  //     console.log('page', e.pageX, e.pageY, getWordAtPoint(e.target, e.pageX, e.pageY))
-  //   }
-  // })
+    const rangeSentence = document.createRange()
+    rangeSentence.setStart(sentenceTextNode, sentenceStart)
+    rangeSentence.setEnd(sentenceTextNode, sentenceEnd)
+    const wrapSentenceElement = document.createElement('sentence')
+    wrapSentenceElement.style.backgroundColor = 'red'
+    rangeSentence.surroundContents(wrapSentenceElement)
 
-  // $(document).on('click', '*', (e) => {
-  // // $(document).on('click', (e) => {
-  //   // don't clickthrough to link
-  //   e.preventDefault()
-  //   e.stopPropagation()
-  //   $('*').css({ cursor: 'pointer' })
-  //   const linkHref = $(e.target).closest('a').attr('href')
-  //   let range
-  //   if (linkHref) {
-  //     console.log('islink', linkHref, $(e.target)[0])
-  //     range = document.createRange()
-  //     range.selectNode($(e.target)[0])
+    // find word in sentence
+    console.log('sentence element', wrapSentenceElement)
+    // setTimeout(() => {
+    // console.log('timeout')
+    const { word } = WordUnderCursor.getFullWord(e)
 
-  //     const wrapLinkElement = document.createElement('word')
-  //     wrapLinkElement.style.backgroundColor = 'green'
-  //     range.surroundContents(wrapLinkElement)
+    const { text: wordText, start: wordStart, end: wordEnd, range: wordRange, textNode: wordTextNode, offset: wordOffset } = word
 
-  //     console.log('selected with range', $(e.target).text())
-  //     return
-  //   }
+    const rangeWord = document.createRange()
+    rangeWord.setStart(wordTextNode, wordStart)
+    rangeWord.setEnd(wordTextNode, wordEnd + 1)
+    const wrapWordElement = document.createElement('word')
+    wrapWordElement.style.backgroundColor = 'green'
+    rangeWord.surroundContents(wrapWordElement)
+    // }, 100)
+    console.log('word in sentence element', $(wrapSentenceElement))
 
-  //   const sel = window.getSelection()
-  //   if (!sel.anchorNode?.nodeValue) return
+    console.log(`word: "${wordText}" ${wordStart} ${wordEnd}`)
+    console.log(`sentence: ${sentenceStart},${sentenceEnd} -"${sentenceText}"`)
+  }
+})
 
-  //   const str = sel.anchorNode.nodeValue
-  //   const len = str.length
-  //   let a = b = sel.anchorOffset
-  //   while (str[a] !== ' ' && a--) {} if (str[a] === ' ') a++ // start of word
-  //   while (str[b] !== ' ' && b++ < len) {} // end of word+1
-  //   a = a > 0 ? a : 0
-  //   b = b < str.length ? b : str.length
+// const activateContent = async() => {
+//   if (!userLanguage.value) await init()
+//   showProgressBar.value = true
+//   isActivatingOnPage.value = true
+//   interactiveWords(
+//     currentTabLanguage,
+//     userLanguage,
+//     shouldSpeakWords,
+//     shouldSpeakSentences,
+//   )
+//   toggleDrawer()
+//   // await contentEnable(progressValue)
 
-  //   const word = str.substring(a, b)
-  //   console.log('word', word)
+//   // capture all clicks
+//   // $(document).on('click', (evt) => {
+//   //   evt.preventDefault() // stops links
+//   //   const el = evt.target
+//   //   console.log('click text', $(el).text())
+//   //   console.log('click el', el)
+//   // })
 
-  //   range = sel.getRangeAt(0)
+//   // function getWordAtPoint(elem, x, y) {
+//   //   if (elem.nodeType == elem.TEXT_NODE) {
+//   //     var range = elem.ownerDocument.createRange()
+//   //     range.selectNodeContents(elem)
+//   //     let currentPos = 0
+//   //     const endPos = range.endOffset
+//   //     while (currentPos + 1 < endPos) {
+//   //       range.setStart(elem, currentPos)
+//   //       range.setEnd(elem, currentPos + 1)
+//   //       if (range.getBoundingClientRect().left <= x && range.getBoundingClientRect().right >= x
+//   //        && range.getBoundingClientRect().top <= y && range.getBoundingClientRect().bottom >= y) {
+//   //         range.expand('word')
+//   //         const ret = range.toString()
+//   //         range.detach()
+//   //         return (ret)
+//   //       }
+//   //       currentPos += 1
+//   //     }
+//   //   }
+//   //   else {
+//   //     for (let i = 0; i < elem.childNodes.length; i++) {
+//   //       var range = elem.childNodes[i].ownerDocument.createRange()
+//   //       range.selectNodeContents(elem.childNodes[i])
+//   //       if (range.getBoundingClientRect().left <= x && range.getBoundingClientRect().right >= x
+//   //        && range.getBoundingClientRect().top <= y && range.getBoundingClientRect().bottom >= y) {
+//   //         range.detach()
+//   //         return (getWordAtPoint(elem.childNodes[i], x, y))
+//   //       }
+//   //       else {
+//   //         range.detach()
+//   //       }
+//   //     }
+//   //   }
+//   //   return (null)
+//   // }
+//   // $(document).on('mousemove', (e) => {
+//   //   // $(document).on('click', (e) => {
+//   //   // don't clickthrough to link
+//   //   // console.log(e)
+//   //   const text = $(e.target).text()
+//   //   if (text) {
+//   //     console.log(text)
+//   //     console.log('page', e.pageX, e.pageY, getWordAtPoint(e.target, e.pageX, e.pageY))
+//   //   }
+//   // })
 
-  //   setTimeout(() => {
-  //     range.setStart(sel.anchorNode, a)
-  //     range.setEnd(sel.anchorNode, b)
+//   // $(document).on('click', '*', (e) => {
+//   // // $(document).on('click', (e) => {
+//   //   // don't clickthrough to link
+//   //   e.preventDefault()
+//   //   e.stopPropagation()
+//   //   $('*').css({ cursor: 'pointer' })
+//   //   const linkHref = $(e.target).closest('a').attr('href')
+//   //   let range
+//   //   if (linkHref) {
+//   //     console.log('islink', linkHref, $(e.target)[0])
+//   //     range = document.createRange()
+//   //     range.selectNode($(e.target)[0])
 
-  //     const wrapWordElement = document.createElement('word')
-  //     wrapWordElement.style.backgroundColor = 'blue'
-  //     range.surroundContents(wrapWordElement)
-  //   }, 500)
+//   //     const wrapLinkElement = document.createElement('word')
+//   //     wrapLinkElement.style.backgroundColor = 'green'
+//   //     range.surroundContents(wrapLinkElement)
 
-  //   let sentA = sentB = sel.anchorOffset
-  //   const endOfSentenceChars = ['.', '!', '?', ';', ':']
-  //   if (endOfSentenceChars.some(v => str.includes(v))) {
-  //     while (!endOfSentenceChars.some(v => str[sentA].includes(v)) && sentA >= 0 && sentA--) {}
-  //     while (!endOfSentenceChars.some(v => str[sentB].includes(v)) && sentB++ < len) {} // end of sentence+1
-  //     sentB = sentB + 1 // include punctuation
-  //   }
-  //   else {
-  //     sentA = 0
-  //     sentB = str.length
-  //   }
-  //   sentA = sentA > 0 ? sentA + 1 : 0
-  //   // sentB = sentB <= str.length ? sentB : str.length - 1
-  //   // const fullText = $(e.target).text()
+//   //     console.log('selected with range', $(e.target).text())
+//   //     return
+//   //   }
 
-  //   // const fullText = $(e.target).text().replace(new RegExp(word), '<match style="background-color:red">$&</match>')
-  //   // $(e.target).html(`<sentence style="background-color:pink">${fullText}<sentence>`)
+//   //   const sel = window.getSelection()
+//   //   if (!sel.anchorNode?.nodeValue) return
 
-  //   const sentence = str.substring(sentA, sentB)
-  //   console.log('sentence', `"${sentence.trim()}"`)
-  //   // console.log('fullText', fullText)
+//   //   const str = sel.anchorNode.nodeValue
+//   //   const len = str.length
+//   //   let a = b = sel.anchorOffset
+//   //   while (str[a] !== ' ' && a--) {} if (str[a] === ' ') a++ // start of word
+//   //   while (str[b] !== ' ' && b++ < len) {} // end of word+1
+//   //   a = a > 0 ? a : 0
+//   //   b = b < str.length ? b : str.length
 
-  //   // select sentence
-  //   range.setStart(sel.anchorNode, sentA)
-  //   range.setEnd(sel.anchorNode, sentB)
+//   //   const word = str.substring(a, b)
+//   //   console.log('word', word)
 
-  //   const wrapSentenceElement = document.createElement('sentence')
-  //   wrapSentenceElement.style.backgroundColor = 'red'
-  //   range.surroundContents(wrapSentenceElement)
-  // })
+//   //   range = sel.getRangeAt(0)
 
-  // $(document).on('click', (e) => {
-  //   e.preventDefault()
-  //   const selection = window.getSelection()
-  //   if (!selection || selection.rangeCount < 1) return true
-  //   const range = selection.getRangeAt(0)
-  //   const node = selection.anchorNode
-  //   const word_regexp = /^\w*$/
-  //   // const word_regexp = /^\([äöüÄÖÜß\w]*$/
-  //   // const word_regexp = /\b([äöüÄÖÜß\w]+)\b/g
+//   //   setTimeout(() => {
+//   //     range.setStart(sel.anchorNode, a)
+//   //     range.setEnd(sel.anchorNode, b)
 
-  //   // Extend the range backward until it matches word beginning
-  //   while ((range.startOffset > 0) && range.toString().match(word_regexp))
-  //     range.setStart(node, (range.startOffset - 1))
+//   //     const wrapWordElement = document.createElement('word')
+//   //     wrapWordElement.style.backgroundColor = 'blue'
+//   //     range.surroundContents(wrapWordElement)
+//   //   }, 500)
 
-  //   // Restore the valid word match after overshooting
-  //   if (!range.toString().match(word_regexp))
-  //     range.setStart(node, range.startOffset + 1)
+//   //   let sentA = sentB = sel.anchorOffset
+//   //   const endOfSentenceChars = ['.', '!', '?', ';', ':']
+//   //   if (endOfSentenceChars.some(v => str.includes(v))) {
+//   //     while (!endOfSentenceChars.some(v => str[sentA].includes(v)) && sentA >= 0 && sentA--) {}
+//   //     while (!endOfSentenceChars.some(v => str[sentB].includes(v)) && sentB++ < len) {} // end of sentence+1
+//   //     sentB = sentB + 1 // include punctuation
+//   //   }
+//   //   else {
+//   //     sentA = 0
+//   //     sentB = str.length
+//   //   }
+//   //   sentA = sentA > 0 ? sentA + 1 : 0
+//   //   // sentB = sentB <= str.length ? sentB : str.length - 1
+//   //   // const fullText = $(e.target).text()
 
-  //   // Extend the range forward until it matches word ending
-  //   while ((range.endOffset < node.length) && range.toString().match(word_regexp))
-  //     range.setEnd(node, range.endOffset + 1)
+//   //   // const fullText = $(e.target).text().replace(new RegExp(word), '<match style="background-color:red">$&</match>')
+//   //   // $(e.target).html(`<sentence style="background-color:pink">${fullText}<sentence>`)
 
-  //   // Restore the valid word match after overshooting
-  //   if (!range.toString().match(word_regexp))
-  //     range.setEnd(node, range.endOffset - 1)
+//   //   const sentence = str.substring(sentA, sentB)
+//   //   console.log('sentence', `"${sentence.trim()}"`)
+//   //   // console.log('fullText', fullText)
 
-  //   const word = range.toString()
-  //   console.log('word', word)
-  // })
+//   //   // select sentence
+//   //   range.setStart(sel.anchorNode, sentA)
+//   //   range.setEnd(sel.anchorNode, sentB)
 
-  // setTimeout(() => {
-  //   showProgressBar.value = false
-  // }, 200)
+//   //   const wrapSentenceElement = document.createElement('sentence')
+//   //   wrapSentenceElement.style.backgroundColor = 'red'
+//   //   range.surroundContents(wrapSentenceElement)
+//   // })
 
-  // activationSuccess.value = true
-  // isEnabled.value = true
+//   // $(document).on('click', (e) => {
+//   //   e.preventDefault()
+//   //   const selection = window.getSelection()
+//   //   if (!selection || selection.rangeCount < 1) return true
+//   //   const range = selection.getRangeAt(0)
+//   //   const node = selection.anchorNode
+//   //   const word_regexp = /^\w*$/
+//   //   // const word_regexp = /^\([äöüÄÖÜß\w]*$/
+//   //   // const word_regexp = /\b([äöüÄÖÜß\w]+)\b/g
 
-  // setTimeout(() => {
-  //   isActivatingOnPage.value = false
-  // }, 200)
-  // // setTimeout(() => {
-  // hideActivationProgress.value = true
-  // }, 600)
-  // setTimeout(() => {
-  // console.log('activateContent')
-  // toggleDrawer()
-  // }, 1000)
-  // toggleDrawer()
-}
+//   //   // Extend the range backward until it matches word beginning
+//   //   while ((range.startOffset > 0) && range.toString().match(word_regexp))
+//   //     range.setStart(node, (range.startOffset - 1))
 
-setTimeout(() => {
-  // wait for code to be injected and parsed
-  showExtension.value = true
-  setTimeout(() => {
-    toggleDrawer()
-  }, 300)
-}, 50)
+//   //   // Restore the valid word match after overshooting
+//   //   if (!range.toString().match(word_regexp))
+//   //     range.setStart(node, range.startOffset + 1)
+
+//   //   // Extend the range forward until it matches word ending
+//   //   while ((range.endOffset < node.length) && range.toString().match(word_regexp))
+//   //     range.setEnd(node, range.endOffset + 1)
+
+//   //   // Restore the valid word match after overshooting
+//   //   if (!range.toString().match(word_regexp))
+//   //     range.setEnd(node, range.endOffset - 1)
+
+//   //   const word = range.toString()
+//   //   console.log('word', word)
+//   // })
+
+//   // setTimeout(() => {
+//   //   showProgressBar.value = false
+//   // }, 200)
+
+//   // activationSuccess.value = true
+//   // isEnabled.value = true
+
+//   // setTimeout(() => {
+//   //   isActivatingOnPage.value = false
+//   // }, 200)
+//   // // setTimeout(() => {
+//   // hideActivationProgress.value = true
+//   // }, 600)
+//   // setTimeout(() => {
+//   // console.log('activateContent')
+//   // toggleDrawer()
+//   // }, 1000)
+//   // toggleDrawer()
+// }
+
+// setTimeout(() => {
+//   // wait for code to be injected and parsed
+//   showExtension.value = true
+//   setTimeout(() => {
+//     toggleDrawer()
+//   }, 300)
+// }, 50)
 
 browser.runtime.onMessage.addListener(async(request) => {
   if (request.action === 'toggle.sidebar') {

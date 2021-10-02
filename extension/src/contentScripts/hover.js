@@ -1,10 +1,31 @@
 import $ from 'jquery'
+
+const getFullSentence = (range, textNode, offset) => {
+  if (!textNode?.nodeValue) return ''
+  const str = textNode.nodeValue
+  const len = str.length
+  let sentA, sentB
+  sentA = sentB = offset
+  const endOfSentenceChars = ['.', '!', '?', ';', ':']
+  if (endOfSentenceChars?.some(v => str?.includes(v))) {
+    while (!endOfSentenceChars?.some(v => str?.[sentA]?.includes(v)) && sentA >= 0 && sentA--) {}
+    while (!endOfSentenceChars?.some(v => str?.[sentB]?.includes(v)) && sentB++ < len) {} // end of sentence+1
+    sentB = sentB + 1 // include punctuation
+  }
+  else {
+    sentA = 0
+    sentB = str?.length
+  }
+  sentA = sentA > 0 ? sentA + 1 : 0
+  const sentence = str?.substring(sentA, sentB).trim() ?? ''
+  return { text: sentence, start: sentA, end: sentB, range, textNode, offset }
+}
+
 const MyApp = {
   data: null,
   request_id: 0,
   init() {
-    /* MOUSEMOVE */
-    document.onmousemove = function(e) {
+    document.onmousemove = (e) => {
       MyApp.onmousemove(e)
     }
   },
@@ -12,13 +33,16 @@ const MyApp = {
     if (!this.data && this.progress_started)
       return
 
-    let sel = WordUnderCursor.getFullWord(e)
-    if (sel)
-      sel = sel.trim()
+    let { word, sentence } = WordUnderCursor.getFullWord(e)
+    if (!word) return
 
-    if (sel && sel !== MyApp.last_sel) {
-      console.log(sel)
-      MyApp.last_sel = sel
+    word = word.trim()
+
+    if (word && word !== MyApp.last_word) {
+      // console.log(`word: "${word}"`)
+      const { text: sentenceText, start: sentenceStart, end: sentenceEnd } = sentence
+      // console.log(`sentence: ${sentenceStart},${sentenceEnd} -"${sentenceText}"`)
+      MyApp.last_word = word
     }
   },
 }
@@ -35,7 +59,6 @@ const WordUnderCursor = {
         range.moveToPoint(event.clientX, event.clientY)
         range.select()
         range = WordUnderCursor.getTextRangeBoundaryPosition(range, true)
-
         textNode = range.node
         offset = range.offset
       }
@@ -50,7 +73,6 @@ const WordUnderCursor = {
       range = document.caretPositionFromPoint(event.clientX, event.clientY)
       textNode = range.offsetNode
       offset = range.offset
-
       // Chrome
       // REF: https://developer.mozilla.org/en-US/docs/Web/API/document/caretRangeFromPoint
     }
@@ -76,6 +98,8 @@ const WordUnderCursor = {
     if (WordUnderCursor.isW(data[offset]))
       return ''
 
+    const sentence = getFullSentence(range, textNode, offset)
+
     // Scan behind the current character until whitespace is found, or beginning
     i = begin = end = offset
     while (i > 0 && !WordUnderCursor.isW(data[i - 1]))
@@ -93,8 +117,8 @@ const WordUnderCursor = {
     // This is our temporary word
     let word = data.substring(begin, end + 1)
 
-    // Demo only
-    WordUnderCursor.showBridge(null, null, null)
+    // // Demo only
+    // WordUnderCursor.showBridge(null, null, null)
 
     // If at a node boundary, cross over and see what
     // the next word is and check if this should be added to our temp word
@@ -107,7 +131,7 @@ const WordUnderCursor = {
         const nextText = nextNode.textContent
 
         // Demo only
-        WordUnderCursor.showBridge(word, nextText, null)
+        // WordUnderCursor.showBridge(word, nextText, null)
 
         // Add the letters from the next text block until a whitespace, or end
         i = 0
@@ -118,8 +142,7 @@ const WordUnderCursor = {
         // Get the previous node text
         const prevText = prevNode.textContent
 
-        // Demo only
-        WordUnderCursor.showBridge(word, null, prevText)
+        // WordUnderCursor.showBridge(word, null, prevText)
 
         // Add the letters from the next text block until a whitespace, or end
         i = prevText.length - 1
@@ -127,7 +150,7 @@ const WordUnderCursor = {
           word = prevText[i--] + word
       }
     }
-    return word
+    return { word: { text: word, start: begin, end, range, textNode, offset }, sentence }
   },
   /// ///////////
 
@@ -200,8 +223,10 @@ const WordUnderCursor = {
     do {
       containerElement.insertBefore(workingNode, workingNode.previousSibling)
       workingRange.moveToElementText(workingNode)
-    } while ((comparison = workingRange.compareEndPoints(
-      workingComparisonType, textRange)) > 0 && workingNode.previousSibling)
+    } while (
+      (comparison = workingRange.compareEndPoints(workingComparisonType, textRange)) > 0
+      && workingNode.previousSibling
+    )
 
     // We've now reached or gone past the boundary of the text range we're
     // interested in so have identified the node we want
@@ -232,17 +257,8 @@ const WordUnderCursor = {
 
     return boundaryPosition
   },
-
-  // DEMO-ONLY code - this shows how the word is recombined across boundaries
-  showBridge(word, nextText, prevText) {
-    return
-    if (nextText)
-      $('#bridge').html(`<span class="word">${word}</span>  |  ${nextText.substring(0, 20)}...`).show()
-    else if (prevText)
-      $('#bridge').html(`...${prevText.substring(prevText.length - 20, prevText.length)}  |  <span class="word">${word}</span>`).show()
-    else
-      $('#bridge').hide()
-  }, // end function
-} // end object
+}
 
 export default MyApp
+
+export { WordUnderCursor }
