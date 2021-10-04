@@ -187,7 +187,6 @@ $(document).on('click', (e) => {
       rangeWord.setStart(wordTextNode, wordStart)
       rangeWord.setEnd(wordTextNode, wordEnd + 1)
       const wrapWordElement = document.createElement('word')
-      wrapWordElement.style.backgroundColor = 'green'
       wrapWordElement.style.display = 'inline-block'
       rangeWord.surroundContents(wrapWordElement)
       $(wrapWordElement).empty()
@@ -201,7 +200,7 @@ $(document).on('click', (e) => {
       wrapWordElement.appendChild(wordInfo)
       const app = createApp({
         extends: Word,
-        data: () => { return { wordId: wordId.value, wordList, sentenceId: sentenceId.value } },
+        data: () => { return { isVisible: true, wordId: wordId.value, wordList, sentenceId: sentenceId.value } },
       }).mount(wordInfo)
       console.log(`word: "${wordText}" ${wordStart} ${wordEnd}`)
       console.log(`sentence: ${sentenceStart},${sentenceEnd} -"${sentenceText}"`)
