@@ -1,5 +1,5 @@
 <template>
-  <span @click="isVisible=!isVisible">
+  <span class="learnword" @click="isVisible=!isVisible">
     <span v-if="isVisible" style="color:pink; display:block">
       {{ wordList.find(w => w.id===wordId).wordText }}
     </span>

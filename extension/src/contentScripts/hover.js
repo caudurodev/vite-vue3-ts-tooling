@@ -17,6 +17,7 @@ const getFullSentence = (range, textNode, offset) => {
     sentB = str?.length
   }
   sentA = sentA > 0 ? sentA + 1 : 0
+  if (sentB > str.length) sentB = str.length
   const sentence = str?.substring(sentA, sentB).trim() ?? ''
   return { text: sentence, start: sentA, end: sentB, range, textNode, offset }
 }

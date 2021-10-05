@@ -160,16 +160,31 @@ const init = async() => {
 }
 init()
 
-$(document).on('click', (e) => {
+$(document.body).not($('wordwrap').find('*')).not($('wordwrap')).on('click', (e) => {
   e.preventDefault()
   e.stopPropagation()
   e.stopImmediatePropagation()
+  const isWrappedWord = !!$(e.target).closest('wordwrap, .learnword').length
+  if (!$(e.target).closest('body')[0]) {
+    console.log('removed from DOM')
+    return
+  } // removed from DOM
+  if (isWrappedWord) {
+    console.log('already active', $(e.target).closest('wordwrap, .learnword')[0])
+    return
+  } // already active
+
+  const isWrappedSentence = !!$(e.target).closest('sentence').length // sentence already wrapped
+
+  console.log($(e.target).closest('body')[0], { isWrappedSentence, isWrappedWord })
+  console.log('continue')
+
   const { sentence } = WordUnderCursor.getFullWord(e)
   if (sentence) {
     const { text: sentenceText, start: sentenceStart, end: sentenceEnd, range: sentenceRange, textNode: sentenceTextNode, offset: sentenceOffset } = sentence
 
     // wrap sentence once
-    if (!$(e.target).closest('sentence').length) {
+    if (!isWrappedSentence) {
       sentenceId.value++
       const rangeSentence = document.createRange()
       rangeSentence.setStart(sentenceTextNode, sentenceStart)
@@ -180,46 +195,29 @@ $(document).on('click', (e) => {
     }
 
     // wrap word once
-    if (!$(e.target).closest('word').length) {
-      const { word: { text: wordText, start: wordStart, end: wordEnd, range: wordRange, textNode: wordTextNode, offset: wordOffset } } = WordUnderCursor.getFullWord(e)
-      activeWord.value = wordText
-      const rangeWord = document.createRange()
-      rangeWord.setStart(wordTextNode, wordStart)
-      rangeWord.setEnd(wordTextNode, wordEnd + 1)
-      const wrapWordElement = document.createElement('word')
-      wrapWordElement.style.display = 'inline-block'
-      rangeWord.surroundContents(wrapWordElement)
-      $(wrapWordElement).empty()
+    const { word: { text: wordText, start: wordStart, end: wordEnd, range: wordRange, textNode: wordTextNode, offset: wordOffset } } = WordUnderCursor.getFullWord(e)
+    activeWord.value = wordText
+    const rangeWord = document.createRange()
+    rangeWord.setStart(wordTextNode, wordStart)
+    rangeWord.setEnd(wordTextNode, wordEnd + 1)
+    const wrapWordElement = document.createElement('wordwrap')
+    wrapWordElement.style.display = 'inline-block'
+    rangeWord.surroundContents(wrapWordElement)
+    $(wrapWordElement).empty()
 
-      wordId.value++
-      const wordData = { id: wordId.value, wordText: activeWord.value, isActive: true, wordStart, wordEnd }
-      wordList.value.push(wordData)
+    wordId.value++
+    const wordData = { id: wordId.value, wordText: activeWord.value, isActive: true, wordStart, wordEnd }
+    wordList.value.push(wordData)
 
-      // create vue instance connected to word
-      const wordInfo = document.createElement('span')
-      wrapWordElement.appendChild(wordInfo)
-      const app = createApp({
-        extends: Word,
-        data: () => { return { isVisible: true, wordId: wordId.value, wordList, sentenceId: sentenceId.value } },
-      }).mount(wordInfo)
-      console.log(`word: "${wordText}" ${wordStart} ${wordEnd}`)
-      console.log(`sentence: ${sentenceStart},${sentenceEnd} -"${sentenceText}"`)
-    }
-    else if ($(e.target).closest('word').length > 0) {
-      console.log('remove', $(e.target)[0])
-      // const keepContent = $(e.target).html()
-      // $(e.target).closest('word').empty().html(keepContent)
-      // $(e.target).closest('word').unwrap()
-
-      // console.log('content', content)
-      // $(e.target).empty()
-      // $(e.target).html(content).unwrap('word-wrap')
-      // const innerDivs = $(e.target).closest('word-wrap').html()
-      // $(e.target).closest('word').remove()
-      // $(e.target).append(innerDivs)
-    }
-
-    //
+    // create vue instance connected to word
+    // const wordInfo = document.createElement('wordwrap')
+    // wrapWordElement.appendChild(wordInfo)
+    const app = createApp({
+      extends: Word,
+      data: () => { return { isVisible: true, wordId: wordId.value, wordList, sentenceId: sentenceId.value } },
+    }).mount(wrapWordElement)
+    console.log(`word: "${wordText}" ${wordStart} ${wordEnd}`)
+    console.log(`sentence: ${sentenceStart},${sentenceEnd} -"${sentenceText}"`)
   }
 })
 
