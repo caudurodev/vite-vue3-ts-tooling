@@ -109,6 +109,7 @@ import 'virtual:windi.css'
 import getLanguageDefaults from '../logic/detectLanguage'
 import Language from '../types/Language'
 import Word from '../components/Word.vue'
+import Sentence from '../components/Sentence.vue'
 import MainApp, { WordUnderCursor } from './hover'
 import interactiveWords from './interact'
 import contentEnable from './dom'
@@ -166,58 +167,62 @@ $(document.body).not($('wordwrap').find('*')).not($('wordwrap')).on('click', (e)
   e.stopImmediatePropagation()
   const isWrappedWord = !!$(e.target).closest('wordwrap, .learnword').length
   if (!$(e.target).closest('body')[0]) {
-    console.log('removed from DOM')
-    return
-  } // removed from DOM
-  if (isWrappedWord) {
-    console.log('already active', $(e.target).closest('wordwrap, .learnword')[0])
-    return
-  } // already active
+    $(e).trigger('click')
+    return // removed from DOM
+  }
+  if (isWrappedWord) return // already active
 
-  const isWrappedSentence = !!$(e.target).closest('sentence').length // sentence already wrapped
+  const isWrappedSentence = !!$(e.target).closest('sentencewrap').length // sentence already wrapped
 
-  console.log($(e.target).closest('body')[0], { isWrappedSentence, isWrappedWord })
-  console.log('continue')
-
-  const { sentence } = WordUnderCursor.getFullWord(e)
+  const { sentence, word: activeWord } = WordUnderCursor.getFullWord(e)
   if (sentence) {
     const { text: sentenceText, start: sentenceStart, end: sentenceEnd, range: sentenceRange, textNode: sentenceTextNode, offset: sentenceOffset } = sentence
-
     // wrap sentence once
     if (!isWrappedSentence) {
       sentenceId.value++
       const rangeSentence = document.createRange()
       rangeSentence.setStart(sentenceTextNode, sentenceStart)
       rangeSentence.setEnd(sentenceTextNode, sentenceEnd)
-      const wrapSentenceElement = document.createElement('sentence')
+      const wrapSentenceElement = document.createElement('sentencewrap')
       wrapSentenceElement.style.backgroundColor = 'red'
       rangeSentence.surroundContents(wrapSentenceElement)
+      $(wrapSentenceElement).empty()
+
+      const clickedStartRange = activeWord.start - sentenceStart
+      console.log('start range', clickedStartRange, sentenceStart, activeWord.start)
+      console.log({ sentence, activeWord })
+
+      const app = createApp({
+        extends: Sentence,
+      },
+      { sentence, clickedStartRange },
+      ).mount(wrapSentenceElement)
     }
 
-    // wrap word once
-    const { word: { text: wordText, start: wordStart, end: wordEnd, range: wordRange, textNode: wordTextNode, offset: wordOffset } } = WordUnderCursor.getFullWord(e)
-    activeWord.value = wordText
-    const rangeWord = document.createRange()
-    rangeWord.setStart(wordTextNode, wordStart)
-    rangeWord.setEnd(wordTextNode, wordEnd + 1)
-    const wrapWordElement = document.createElement('wordwrap')
-    wrapWordElement.style.display = 'inline-block'
-    rangeWord.surroundContents(wrapWordElement)
-    $(wrapWordElement).empty()
+    // // wrap word once
+    // const { word: { text: wordText, start: wordStart, end: wordEnd, range: wordRange, textNode: wordTextNode, offset: wordOffset } } = WordUnderCursor.getFullWord(e)
+    // activeWord.value = wordText
+    // const rangeWord = document.createRange()
+    // rangeWord.setStart(wordTextNode, wordStart)
+    // rangeWord.setEnd(wordTextNode, wordEnd + 1)
+    // const wrapWordElement = document.createElement('wordwrap')
+    // wrapWordElement.style.display = 'inline-block'
+    // rangeWord.surroundContents(wrapWordElement)
+    // $(wrapWordElement).empty()
 
-    wordId.value++
-    const wordData = { id: wordId.value, wordText: activeWord.value, isActive: true, wordStart, wordEnd }
-    wordList.value.push(wordData)
+    // wordId.value++
+    // const wordData = { id: wordId.value, wordText: activeWord.value, isActive: true, wordStart, wordEnd }
+    // wordList.value.push(wordData)
 
-    // create vue instance connected to word
-    // const wordInfo = document.createElement('wordwrap')
-    // wrapWordElement.appendChild(wordInfo)
-    const app = createApp({
-      extends: Word,
-      data: () => { return { isVisible: true, wordId: wordId.value, wordList, sentenceId: sentenceId.value } },
-    }).mount(wrapWordElement)
-    console.log(`word: "${wordText}" ${wordStart} ${wordEnd}`)
-    console.log(`sentence: ${sentenceStart},${sentenceEnd} -"${sentenceText}"`)
+    // // create vue instance connected to word
+    // // const wordInfo = document.createElement('wordwrap')
+    // // wrapWordElement.appendChild(wordInfo)
+    // const app = createApp({
+    //   extends: Word,
+    //   data: () => { return { isVisible: true, wordId: wordId.value, wordList, sentenceId: sentenceId.value } },
+    // }).mount(wrapWordElement)
+    // console.log(`word: "${wordText}" ${wordStart} ${wordEnd}`)
+    // console.log(`sentence: ${sentenceStart},${sentenceEnd} -"${sentenceText}"`)
   }
 })
 
