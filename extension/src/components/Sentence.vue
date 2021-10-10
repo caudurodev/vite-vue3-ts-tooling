@@ -4,6 +4,8 @@
       v-for="(word, index) in words"
       :key="index"
       style="display:inline-block;cursor:pointer;"
+      :data-id="index"
+      class="learnword"
       @click="toggleWord(word)"
     >
       <span v-if="word.isActive" style="color:pink; display:block">{{ word.text }}</span>
@@ -20,52 +22,57 @@
 
 <script lang="ts">
 import tokenizer from 'wink-tokenizer'
-import { defineComponent } from 'vue'
+import { defineComponent, ref } from 'vue'
+import $ from 'jquery'
+
 export default defineComponent({
   props: {
     sentence: {
-      type: Object,
-      default() { return {} },
+      type: String,
+      default() { return '' },
     },
-    activeWord: {
-      type: Object,
-      default() { return {} },
+    x: {
+      type: Number,
+      default() { return -1 },
     },
-    clickedStartRange: {
+    y: {
       type: Number,
       default() { return -1 },
     },
   },
-  computed: {
-    words() {
-      if (!this.sentence?.text.length) return
-      let startRange = 0
-      let endRange = -1
-      return tokenizer().tokenize(this.sentence.text).map((w) => {
-        startRange = endRange + 1
-        endRange = endRange + w.value.length + 2 // +2 = space between tokens
-        // console.log('ranges', startRange, endRange, w, w.value.length)
-        return { isActive: false, text: w.value, tag: w.tag, startRange, endRange }
-      })
-    },
+  data() {
+    return {
+      words: {},
+    }
   },
   created() {
-    // match initial clicked word to rang and make it active
-    console.log('words:', this.clickedStartRange, this.words)
-    const word = this.words
-      .filter(
-        w => this.clickedStartRange >= w.startRange
-        && this.clickedStartRange <= w.endRange,
-      )?.[0]
-    if (word) word.isActive = true
-    console.log('first clicked word', word, word?.text)
+    console.log('created', this.sentence)
+    let startRange = 0
+    let endRange = -1
+    this.words = tokenizer().tokenize(this.sentence).map((w, i) => {
+      startRange = endRange + 1
+      endRange = endRange + w.value.length + 2 // +2 = space between tokens
+      return { isActive: false, text: w.value, tag: w.tag, startRange, endRange, id: i }
+    })
+
+    // match initial clicked word to range and make it active
+    // const word = this.words.filter(
+    //   w => this.clickedStartRange >= w.startRange
+    //     && this.clickedStartRange <= w.endRange
+    //     && w.text.includes(this.clickedWordText),
+    // )?.[0]
+    // if (word) word.isActive = true
+  },
+  mounted() {
+    const intialClickedElementId = $(document.elementFromPoint(this.x, this.y)).closest('.learnword').attr('data-id')
+    this.words[intialClickedElementId].isActive = true
   },
   methods: {
     toggleWord(word) {
-      // console.log('clickedStartRange', this.clickedStartRange)
-      // console.log('clicked word:', word)
-      word.isActive = !word.isActive
+      const wordClicked = this.words.filter(w => w.id === word.id)?.[0]
+      if (wordClicked) wordClicked.isActive = !wordClicked.isActive
     },
   },
 })
+
 </script>

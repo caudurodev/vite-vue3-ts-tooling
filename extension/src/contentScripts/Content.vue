@@ -102,6 +102,7 @@
 <script setup lang="ts">
 import { ref, defineComponent, createApp, h } from 'vue'
 import $ from 'jquery'
+import Mark from 'mark.js'
 import { onClickOutside, useToggle } from '@vueuse/core'
 import browser from 'webextension-polyfill'
 import 'virtual:windi.css'
@@ -149,15 +150,6 @@ const init = async() => {
   const defaults = await getLanguageDefaults()
   currentTabLanguage.value = defaults.currentTabLanguage
   userLanguage.value = defaults.userLanguage
-  // MainApp.init()
-  // caretRange()
-  // update popup with detected languages
-
-  // browser.runtime.sendMessage({
-  //   action: 'bg.language.detect',
-  //   currentTabLanguage: currentTabLanguage.value,
-  //   userLanguage: userLanguage.value,
-  // })
 }
 init()
 
@@ -176,53 +168,39 @@ $(document.body).not($('wordwrap').find('*')).not($('wordwrap')).on('click', (e)
 
   const { sentence, word: activeWord } = WordUnderCursor.getFullWord(e)
   if (sentence) {
-    const { text: sentenceText, start: sentenceStart, end: sentenceEnd, range: sentenceRange, textNode: sentenceTextNode, offset: sentenceOffset } = sentence
-    // wrap sentence once
+    // const { text: sentenceText, start: sentenceStart, end: sentenceEnd, range: sentenceRange, textNode: sentenceTextNode, offset: sentenceOffset } = sentence
     if (!isWrappedSentence) {
-      sentenceId.value++
-      const rangeSentence = document.createRange()
-      rangeSentence.setStart(sentenceTextNode, sentenceStart)
-      rangeSentence.setEnd(sentenceTextNode, sentenceEnd)
-      const wrapSentenceElement = document.createElement('sentencewrap')
-      wrapSentenceElement.style.backgroundColor = 'red'
-      rangeSentence.surroundContents(wrapSentenceElement)
-      $(wrapSentenceElement).empty()
+      // const clickedStartRange = activeWord.offset - sentenceStart
+      // const clickedWordText = activeWord.text
+      const { clicked, x, y } = sentence
+      const sentenceText = $(clicked).text()
+      console.log('sentence el:', clicked, x, y, sentenceText)
+      $(clicked).empty()
+      const app = createApp(
+        { extends: Sentence },
+        { sentence: sentenceText, x, y },
+      ).mount(clicked)
 
-      const clickedStartRange = activeWord.start - sentenceStart
-      console.log('start range', clickedStartRange, sentenceStart, activeWord.start)
-      console.log({ sentence, activeWord })
+      // console.log('sentence', sentence)
+      // console.log('word', activeWord)
+      // console.log('start range', clickedStartRange, activeWord.offset, sentenceStart, clickedWordText)
 
-      const app = createApp({
-        extends: Sentence,
-      },
-      { sentence, clickedStartRange },
-      ).mount(wrapSentenceElement)
+      // console.log('sentenceText', sentenceText)
+
+      // const rangeSentence = document.createRange()
+      // rangeSentence.setStart(sentenceTextNode, sentenceStart)
+      // rangeSentence.setEnd(sentenceTextNode, sentenceEnd)
+
+      // const wrapSentenceElement = document.createElement('sentencewrap')
+      // wrapSentenceElement.style.backgroundColor = 'red'
+      // rangeSentence.surroundContents(wrapSentenceElement)
+      // $(wrapSentenceElement).empty()
+
+      // const app = createApp(
+      //   { extends: Sentence },
+      //   { sentence, clickedStartRange, clickedWordText },
+      // ).mount(wrapSentenceElement)
     }
-
-    // // wrap word once
-    // const { word: { text: wordText, start: wordStart, end: wordEnd, range: wordRange, textNode: wordTextNode, offset: wordOffset } } = WordUnderCursor.getFullWord(e)
-    // activeWord.value = wordText
-    // const rangeWord = document.createRange()
-    // rangeWord.setStart(wordTextNode, wordStart)
-    // rangeWord.setEnd(wordTextNode, wordEnd + 1)
-    // const wrapWordElement = document.createElement('wordwrap')
-    // wrapWordElement.style.display = 'inline-block'
-    // rangeWord.surroundContents(wrapWordElement)
-    // $(wrapWordElement).empty()
-
-    // wordId.value++
-    // const wordData = { id: wordId.value, wordText: activeWord.value, isActive: true, wordStart, wordEnd }
-    // wordList.value.push(wordData)
-
-    // // create vue instance connected to word
-    // // const wordInfo = document.createElement('wordwrap')
-    // // wrapWordElement.appendChild(wordInfo)
-    // const app = createApp({
-    //   extends: Word,
-    //   data: () => { return { isVisible: true, wordId: wordId.value, wordList, sentenceId: sentenceId.value } },
-    // }).mount(wrapWordElement)
-    // console.log(`word: "${wordText}" ${wordStart} ${wordEnd}`)
-    // console.log(`sentence: ${sentenceStart},${sentenceEnd} -"${sentenceText}"`)
   }
 })
 
@@ -235,10 +213,6 @@ browser.runtime.onMessage.addListener(async(request) => {
   if (request.action === 'content.activate')
     console.log('activate')
 
-  // setTimeout(() => {
-  //   toggleDrawer()
-  // }, 1000)
-
   if (request.action === 'translations.activate') {
     if (isEnabled.value)
       console.log('already enabled on page')
@@ -249,12 +223,6 @@ browser.runtime.onMessage.addListener(async(request) => {
   if (request.action === 'content.language.set') {
     userLanguage.value = request.userLanguage
     currentTabLanguage.value = request.currentTabLanguage
-    // interactiveWords(
-    //   currentTabLanguage.value,
-    //   userLanguage.value,
-    //   shouldSpeakWords.value,
-    //   shouldSpeakSentences.value,
-    // )
   }
   if (request.action === 'content.language.detect') {
     console.log('content.language.detect', request)
@@ -292,19 +260,6 @@ const setLanguagePairs = async() => {
 const target = ref(null)
 
 onClickOutside(target, (event) => { if (isOpen.value) toggleDrawer() })
-
-// TODO: watch dom for changes and apply learning to new textnodes
-// const observer = new MutationObserver((mutationsList, observer) => {
-//   if (isActivatingOnPage.value) return
-//   for (const mutation of mutationsList) {
-//     if (mutation.type === 'childList')
-//       console.log('A child node has been added or removed.', mutation)
-//     else if (mutation.type === 'attributes')
-//       console.log(`The ${mutation.attributeName} attribute was modified.`)
-//   }
-//   console.log('callback that runs when observer is triggered')
-// })
-// observer.observe(document.body, { subtree: true, childList: true })
 
 console.log('setup content end')
 </script>

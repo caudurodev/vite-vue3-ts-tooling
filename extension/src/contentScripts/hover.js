@@ -1,26 +1,7 @@
+import nlp from 'wink-nlp-utils'
 import $ from 'jquery'
-
-const getFullSentence = (range, textNode, offset) => {
-  if (!textNode?.nodeValue) return ''
-  const str = textNode.nodeValue
-  const len = str.length
-  let sentA, sentB
-  sentA = sentB = offset
-  const endOfSentenceChars = ['.', '!', '?', ';', ':']
-  if (endOfSentenceChars?.some(v => str?.includes(v))) {
-    while (!endOfSentenceChars?.some(v => str?.[sentA]?.includes(v)) && sentA >= 0 && sentA--) {}
-    while (!endOfSentenceChars?.some(v => str?.[sentB]?.includes(v)) && sentB++ < len) {} // end of sentence+1
-    sentB = sentB + 1 // include punctuation
-  }
-  else {
-    sentA = 0
-    sentB = str?.length
-  }
-  sentA = sentA > 0 ? sentA + 1 : 0
-  if (sentB > str.length) sentB = str.length
-  const sentence = str?.substring(sentA, sentB).trim() ?? ''
-  return { text: sentence, start: sentA, end: sentB, range, textNode, offset }
-}
+import Mark from 'mark.js'
+import tokenizer from 'sbd'
 
 const MyApp = {
   data: null,
@@ -50,7 +31,7 @@ const MyApp = {
 
 const WordUnderCursor = {
 // Get the full word the cursor is over regardless of span breaks
-  getFullWord(event) {
+  getRangeNodeOffset(event) {
     let i, begin, end, range, textNode, offset
 
     // Internet Explorer
@@ -83,6 +64,12 @@ const WordUnderCursor = {
       offset = range.startOffset
     }
 
+    return { i, begin, end, range, textNode, offset }
+  },
+
+  getFullWord(event) {
+    let { i, begin, end, range, textNode, offset } = WordUnderCursor.getRangeNodeOffset(event)
+
     // Only act on text nodes
     if (!textNode || textNode.nodeType !== Node.TEXT_NODE)
       return ''
@@ -99,7 +86,7 @@ const WordUnderCursor = {
     if (WordUnderCursor.isW(data[offset]))
       return ''
 
-    const sentence = getFullSentence(range, textNode, offset)
+    const sentence = getFullSentence(range, textNode, offset, event)
 
     // Scan behind the current character until whitespace is found, or beginning
     i = begin = end = offset
@@ -117,9 +104,6 @@ const WordUnderCursor = {
 
     // This is our temporary word
     let word = data.substring(begin, end + 1)
-
-    // // Demo only
-    // WordUnderCursor.showBridge(null, null, null)
 
     // If at a node boundary, cross over and see what
     // the next word is and check if this should be added to our temp word
@@ -258,6 +242,116 @@ const WordUnderCursor = {
 
     return boundaryPosition
   },
+}
+
+const getFullSentence = (range, textNode, offset, event) => {
+  if (!textNode?.nodeValue) return ''
+
+  // console.log('start', range, textNode, offset, event)
+
+  let str = ''
+  let useParent = false
+  if ($(event.target).is('a,i,b') && $(event.target).parent().is('p,h1,h2,h3')) {
+    // console.log('clicked a,i,b within paragraph, strip')
+    str = $(event.target).parent().text()
+    // $(event.target).replaceWith($(event.target).html().replace(/<\/?[^>]+>/gi, ''))// strip tags
+    // console.log('event?', event)
+    const { textNode: newTextNode, offset: newOffset } = WordUnderCursor.getRangeNodeOffset(event)
+    textNode = newTextNode.firstChild
+    offset = newOffset
+    useParent = true
+    // console.log('modified', range, textNode, offset, event)
+  }
+  else {
+    // console.log('just use element text')
+    str = $(event.target).text()
+  }
+
+  // console.log('tagName', $(event.target).prop('tagName'))
+  // console.log('find', $(event.target).find('a,i,b'))
+  // if()
+  // $(event.target).replaceWith($(event.target).html().replace(/<\/?[^>]+>/gi, ''))
+
+  // const str = textNode.nodeValue
+
+  const len = str.length
+  let sentA, sentB
+  sentA = sentB = offset
+  // console.log('fulltext', str)
+  // console.log('match', str.match(/["’„]?[A-Z][^.?!:;]+((?![.?!][’"'"`’”„]?\s["’]?[A-Z][^.?!]).)+[.?!:;’"'"`’”„“\d$]+/g))
+  // console.log('nlp', nlp.string.sentences(str))
+  // console.log('nlp without tags', nlp.string.sentences(str.replace(/<\/?[^>]+>/gi, '')))
+  const sentences = tokenizer.sentences(str, {
+    newline_boundaries: false,
+    html_boundaries: false,
+    sanitize: false,
+    allowed_tags: false,
+    preserve_whitespace: true,
+    abbreviations: null,
+  })
+  // console.log('textnode', $(textNode)[0])
+  // console.log('tokenizer', sentences)
+  const target = useParent ? $(event.target).parent()[0] : $(event.target)[0]
+  const instance = new Mark(target)
+  console.log('searchNode', target)
+  sentences.forEach((s) => {
+    const searchSentence = s.replace(/\n/gi, '').replace(/\s+/g, ' ').trim()
+    // const searchSentence = 'Als die frisch gekürte Kanzlerkandidatin Annalena Baerbock sich am späten Montagabend nach ihrem "Tagesthemen"-Auftritt höflich von Caren Miosga verabschiedete, hatte sie eine beeindruckende Fernsehtour hinter sich.'
+    // console.log('searchSentence', searchSentence)
+
+    instance.mark(searchSentence, {
+      // accuracy: 'exactly',
+      acrossElements: true,
+      separateWordSearch: false,
+      // diacritics: true,
+      // ignoreJoiners: true,
+      // ignorePunctuation: true,
+      element: 'learnsentence',
+      exclude: [
+        'style *',
+        'script *',
+        'learnsentence',
+      ],
+      className: 'sentenceHighlight',
+      each: (e) => {
+        $(e).css('background-color', 'pink')
+      },
+    })
+  })
+
+  // cleanup sentences with elements inside
+  console.log('nested', $(target).find('a > learnsentence'))
+
+  const clicked = document.elementFromPoint(event.clientX, event.clientY)
+  console.log('element frmo point:', event, clicked)
+  if ($(clicked).is('learnsentence'))
+    $(clicked).css('background-color', 'red')
+  $(clicked).addClass('thesentence')
+
+  instance.unmark({ exclude: ['.thesentence'] })
+
+  return { clicked, x: event.clientX, y: event.clientY }
+  // const endOfSentenceChars = ['. ', '! ', '? ', '; ']
+  // if (endOfSentenceChars?.some(v => str?.includes(v))) {
+  //   while (
+  //     !endOfSentenceChars?.some(v =>
+  //       str?.[sentA]?.includes(v) && str?.[sentA - 1]?.includes(' '),
+  //     ) && sentA >= 1 && sentA--
+  //   ) {}
+  //   while (!endOfSentenceChars?.some(v => str?.[sentB]?.includes(v)) && sentB++ < len) {} // end of sentence+1
+  //   sentB = sentB + 1 // include punctuation
+  // }
+  // else {
+  //   sentA = 0
+  //   sentB = str?.length
+  // }
+  // sentA = sentA > 0 ? sentA + 1 : 0
+  // if (sentB > str.length) sentB = str.length
+  // const sentence = str?.substring(sentA, sentB).trim() ?? ''
+
+  // // console.log('end', sentence, sentA, sentB)
+
+  // return { text: sentence, start: sentA, end: sentB, range, textNode, offset }
 }
 
 export default MyApp
