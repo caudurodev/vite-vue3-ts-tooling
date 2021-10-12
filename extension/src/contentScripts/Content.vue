@@ -100,21 +100,19 @@
 </template>
 
 <script setup lang="ts">
-import { ref, defineComponent, createApp, h } from 'vue'
+import { ref, createApp } from 'vue'
 import $ from 'jquery'
 import Mark from 'mark.js'
 import { onClickOutside, useToggle } from '@vueuse/core'
 import browser from 'webextension-polyfill'
 import 'virtual:windi.css'
+import tokenizer from 'sbd'
 
 import getLanguageDefaults from '../logic/detectLanguage'
 import Language from '../types/Language'
 import Word from '../components/Word.vue'
 import Sentence from '../components/Sentence.vue'
-import MainApp, { WordUnderCursor } from './hover'
-import interactiveWords from './interact'
-import contentEnable from './dom'
-const UNIQUE_INTERFACE_ID = 'a4efr4vrtewfw2efasa'
+const UNIQUE_INTERFACE_ID = 'aa04weonf43lk0'
 const showExtension = ref(false)
 const wordList = ref([])
 const wordId = ref(0)
@@ -153,6 +151,57 @@ const init = async() => {
 }
 init()
 
+const getFullSentence = (event) => {
+  let str = ''
+  let useParent = false
+  if ($(event.target).is('a,i,b') && $(event.target).parent().is('p,h1,h2,h3')) {
+    str = $(event.target).parent().text()
+    useParent = true
+  }
+  else {
+    str = $(event.target).text()
+  }
+
+  const sentences = tokenizer.sentences(str, {
+    newline_boundaries: false,
+    html_boundaries: false,
+    sanitize: false,
+    allowed_tags: false,
+    preserve_whitespace: true,
+    abbreviations: null,
+  })
+  const target = useParent ? $(event.target).parent()[0] : $(event.target)[0]
+  const instance = new Mark(target)
+  sentences.forEach((s) => {
+    const searchSentence = s.replace(/\n/gi, '').replace(/\s+/g, ' ').trim()
+    instance.mark(searchSentence, {
+      acrossElements: true,
+      separateWordSearch: false,
+      element: 'learnsentence',
+      exclude: [
+        'style *',
+        'script *',
+        'learnsentence',
+      ],
+      className: 'sentenceHighlight',
+      each: (e) => {
+        $(e).css('background-color', 'pink')
+      },
+    })
+  })
+  // console.log('nested', $(target).find('a > learnsentence'))
+
+  const clicked = document.elementFromPoint(event.clientX, event.clientY)
+  if ($(clicked).is('learnsentence')) {
+    $(clicked).css('background-color', 'red')
+    $(clicked).addClass('thesentence')
+  }
+
+  instance.unmark({ exclude: ['.thesentence'] })
+
+  return { clicked, x: event.clientX, y: event.clientY }
+}
+
 $(document.body).not($('wordwrap').find('*')).not($('wordwrap')).on('click', (e) => {
   e.preventDefault()
   e.stopPropagation()
@@ -163,52 +212,18 @@ $(document.body).not($('wordwrap').find('*')).not($('wordwrap')).on('click', (e)
     return // removed from DOM
   }
   if (isWrappedWord) return // already active
-
   const isWrappedSentence = !!$(e.target).closest('sentencewrap').length // sentence already wrapped
-
-  const { sentence, word: activeWord } = WordUnderCursor.getFullWord(e)
-  if (sentence) {
-    // const { text: sentenceText, start: sentenceStart, end: sentenceEnd, range: sentenceRange, textNode: sentenceTextNode, offset: sentenceOffset } = sentence
-    if (!isWrappedSentence) {
-      // const clickedStartRange = activeWord.offset - sentenceStart
-      // const clickedWordText = activeWord.text
-      const { clicked, x, y } = sentence
-      const sentenceText = $(clicked).text()
-      console.log('sentence el:', clicked, x, y, sentenceText)
-      $(clicked).empty()
-      const app = createApp(
-        { extends: Sentence },
-        { sentence: sentenceText, x, y },
-      ).mount(clicked)
-
-      // console.log('sentence', sentence)
-      // console.log('word', activeWord)
-      // console.log('start range', clickedStartRange, activeWord.offset, sentenceStart, clickedWordText)
-
-      // console.log('sentenceText', sentenceText)
-
-      // const rangeSentence = document.createRange()
-      // rangeSentence.setStart(sentenceTextNode, sentenceStart)
-      // rangeSentence.setEnd(sentenceTextNode, sentenceEnd)
-
-      // const wrapSentenceElement = document.createElement('sentencewrap')
-      // wrapSentenceElement.style.backgroundColor = 'red'
-      // rangeSentence.surroundContents(wrapSentenceElement)
-      // $(wrapSentenceElement).empty()
-
-      // const app = createApp(
-      //   { extends: Sentence },
-      //   { sentence, clickedStartRange, clickedWordText },
-      // ).mount(wrapSentenceElement)
-    }
+  if (!isWrappedSentence) {
+    const { clicked, x, y } = getFullSentence(e)
+    const sentenceText = $(clicked).text()
+    $(clicked).empty()
+    createApp({ extends: Sentence }, { sentence: sentenceText, x, y }).mount(clicked)
   }
 })
 
 browser.runtime.onMessage.addListener(async(request) => {
-  if (request.action === 'toggle.sidebar') {
-    console.log('toggle')
+  if (request.action === 'toggle.sidebar')
     toggleDrawer()
-  }
 
   if (request.action === 'content.activate')
     console.log('activate')
