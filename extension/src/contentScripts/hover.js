@@ -86,7 +86,8 @@ const WordUnderCursor = {
     if (WordUnderCursor.isW(data[offset]))
       return ''
 
-    const sentence = getFullSentence(range, textNode, offset, event)
+    // const sentence = getFullSentence(range, textNode, offset, event)
+    const sentence = {}
 
     // Scan behind the current character until whitespace is found, or beginning
     i = begin = end = offset
@@ -323,7 +324,7 @@ const getFullSentence = (range, textNode, offset, event) => {
   console.log('nested', $(target).find('a > learnsentence'))
 
   const clicked = document.elementFromPoint(event.clientX, event.clientY)
-  console.log('element frmo point:', event, clicked)
+  // console.log('element frmo point:', event, clicked)
   if ($(clicked).is('learnsentence'))
     $(clicked).css('background-color', 'red')
   $(clicked).addClass('thesentence')

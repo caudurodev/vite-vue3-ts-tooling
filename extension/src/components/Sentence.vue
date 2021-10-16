@@ -1,6 +1,5 @@
 <template>
-  <span v-if="words.length > 0" class="learnsentence">
-
+  <span v-if="words.length > 0" class="learnsentence" style="background-color:red;">
     <span
       v-for="(word,index) in words"
       :key="word.id"
@@ -10,15 +9,28 @@
       @click="toggleWord(word.id)"
     >
       <!-- <span v-if="word.isFirstInRange" style="color:green; display:block">{{ word.rangeText }}</span> -->
-      <span v-if="word.isRange" style="color:green; display:block">{{ word.text }}</span>
+      <span v-if="word.isRange && wordIsFirstInRange(word.id)" style="color:green; display:block">{{ word.rangeText }}</span>
       <span v-if="word.isActive && !word.isRange" style="color:pink; display:block">{{ word.text }}</span>
       <span
+        v-if="!word.isRange"
         style="display:inline-block"
         :style="word.isRange && 'background-color:green'"
       >
         {{ word.text }}
       </span>
+      <span v-if="word.isRange && wordIsFirstInRange(word.id)" style="background-color:yellow">
+        {{ word.rangeText }}
+      </span>
       <span v-if="index !== words.length && words[word.id + 1]?.tag !== 'punctuation'" v-html="'&nbsp;'" />
+    </span>
+  </span>
+  <span class="translatetools">
+    <button @click="toggleSentenceTranslation()">translate</button>
+    <span
+      v-if="isShowingSentenceTranslation"
+      style="background-color:pink;color:white;display:inline"
+    >
+      {{ sentence }}
     </span>
   </span>
 </template>
@@ -46,6 +58,8 @@ export default defineComponent({
   data() {
     return {
       words: [],
+      isShowingSentenceTranslation: false,
+      isMounted: false,
     }
   },
   computed: {
@@ -60,13 +74,20 @@ export default defineComponent({
   },
   mounted() {
     const wordId = Number($(document.elementFromPoint(this.x, this.y)).closest('.learnword').attr('data-id'))
-    if (wordId)
+    if (wordId >= 0)
       this.toggleWord(wordId)
+    this.isMounted = true
   },
   methods: {
+    toggleSentenceTranslation() {
+      this.isShowingSentenceTranslation = !this.isShowingSentenceTranslation
+    },
     getActiveWords() {
       if (!this.words) return []
       return [...this.words.filter(w => w.isActive)]
+    },
+    wordIsFirstInRange(wordId) {
+      return !!this.rangeify(this.getActiveWords()).find(r => r[0] === wordId)
     },
     // getRangesWithClosebyPunctuation() {
     //   const ranges = this.rangeify(this.getActiveWords())
@@ -96,9 +117,6 @@ export default defineComponent({
       const wordClicked = this.words[wordId]
       if (!wordClicked) return
       wordClicked.isActive = !wordClicked.isActive
-
-      console.log('toggle next word:', wordId, this.words, this.words[wordId + 1])
-
       if (this.words[wordId + 1]?.tag === 'punctuation')
         this.words[wordId + 1].isActive = wordClicked.isActive
       // if (this.words[wordId - 1]?.tag === 'punctuation')
@@ -150,6 +168,7 @@ export default defineComponent({
           tempString += `${this.words[i].text} `
           this.words[i].isRange = true
         }
+        this.words[r[0]].rangeText = tempString
         if (tempString) rangeStrings.push(tempString)
       })
       // console.log('rangeStrings', rangeStrings)

@@ -112,6 +112,7 @@ import getLanguageDefaults from '../logic/detectLanguage'
 import Language from '../types/Language'
 import Word from '../components/Word.vue'
 import Sentence from '../components/Sentence.vue'
+import { WordUnderCursor } from './hover'
 const UNIQUE_INTERFACE_ID = 'aa04weonf43lk0'
 const showExtension = ref(false)
 const wordList = ref([])
@@ -182,18 +183,21 @@ const getFullSentence = (event) => {
         'style *',
         'script *',
         'learnsentence',
+        'wordwrap',
+        '.learnword',
+        '.translatetools',
       ],
       className: 'sentenceHighlight',
-      each: (e) => {
-        $(e).css('background-color', 'pink')
-      },
+      // each: (e) => {
+      //   $(e).css('background-color', 'pink')
+      // },
     })
   })
   // console.log('nested', $(target).find('a > learnsentence'))
 
   const clicked = document.elementFromPoint(event.clientX, event.clientY)
   if ($(clicked).is('learnsentence')) {
-    $(clicked).css('background-color', 'red')
+    // $(clicked).css('background-color', 'red')
     $(clicked).addClass('thesentence')
   }
 
@@ -202,18 +206,34 @@ const getFullSentence = (event) => {
   return { clicked, x: event.clientX, y: event.clientY }
 }
 
-$(document.body).not($('wordwrap').find('*')).not($('wordwrap')).on('click', (e) => {
-  e.preventDefault()
-  e.stopPropagation()
-  e.stopImmediatePropagation()
-  const isWrappedWord = !!$(e.target).closest('wordwrap, .learnword').length
-  if (!$(e.target).closest('body')[0]) {
-    $(e).trigger('click')
-    return // removed from DOM
+$(document.body).on('click', (e) => {
+  if (
+    $(e.target).is('body, wordwrap, .learnword,.translatetools')
+    || !!$(e.target).closest('wordwrap, .learnword, .translatetools').length
+  ) {
+    console.log('abort click')
+    return
   }
-  if (isWrappedWord) return // already active
+  const { word } = WordUnderCursor.getFullWord(e)
+  if (!word) {
+    console.log('abort no word')
+    return
+  }
+  if (!$(e.target).closest('body')[0])
+    return // removed from DOM
+
+  // const isWrappedWord = !!$(e.target).closest('wordwrap, .learnword').length
+  // if (isWrappedWord) {
+  //   console.log('iswrapped word, abort')
+  //   return
+  // }
+
   const isWrappedSentence = !!$(e.target).closest('sentencewrap').length // sentence already wrapped
   if (!isWrappedSentence) {
+    e.preventDefault()
+    e.stopPropagation()
+    e.stopImmediatePropagation()
+    console.log('wrap sentence', $(e.target))
     const { clicked, x, y } = getFullSentence(e)
     const sentenceText = $(clicked).text()
     $(clicked).empty()
