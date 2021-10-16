@@ -1,30 +1,30 @@
 <template>
-  <span v-if="words.length > 0" class="learnsentence" style="background-color:red;">
+  <span v-if="words.length > 0" class="learnsentence">
     <span
       v-for="(word,index) in words"
       :key="word.id"
       style="display:inline-block;cursor:pointer;"
       :data-id="word.id"
       class="learnword"
-      @click="toggleWord(word.id)"
     >
-      <!-- <span v-if="word.isFirstInRange" style="color:green; display:block">{{ word.rangeText }}</span> -->
-      <span v-if="word.isRange && wordIsFirstInRange(word.id)" style="color:green; display:block">{{ word.rangeText }}</span>
+      <span v-if="word.isRange && showRangeFromWord(word.id)" style="color:green; display:block">{{ word.rangeTextTranslated }}</span>
       <span v-if="word.isActive && !word.isRange" style="color:pink; display:block">{{ word.text }}</span>
-      <span
-        v-if="!word.isRange"
-        style="display:inline-block"
-        :style="word.isRange && 'background-color:green'"
-      >
+      <span v-if="!word.isRange" style="display:inline-block; background-color:red" @click="toggleWord(word.id)">
         {{ word.text }}
+        <span v-if="index !== words.length && words[word.id + 1]?.tag !== 'punctuation'" v-html="'&nbsp;'" />
       </span>
-      <span v-if="word.isRange && wordIsFirstInRange(word.id)" style="background-color:yellow">
-        {{ word.rangeText }}
+      <span v-if="word.isRange && showRangeFromWord(word.id)">
+        <span v-for="(wordInRange, rangeIndex) in wordsInRange(word.id)" :key="wordInRange.id">
+          <!-- {{ word.rangeText }} -->
+          <span style="background-color:yellow" @click="toggleWord(wordInRange.id)">
+            {{ wordInRange.text }}
+            <span v-if="rangeIndex !== wordsInRange(word.id).length && wordInRange[wordInRange.id + 1]?.tag !== 'punctuation'" v-html="'&nbsp;'" />
+          </span>
+        </span>
       </span>
-      <span v-if="index !== words.length && words[word.id + 1]?.tag !== 'punctuation'" v-html="'&nbsp;'" />
     </span>
   </span>
-  <span class="translatetools">
+  <span class="translatetools mx-2">
     <button @click="toggleSentenceTranslation()">translate</button>
     <span
       v-if="isShowingSentenceTranslation"
@@ -86,8 +86,23 @@ export default defineComponent({
       if (!this.words) return []
       return [...this.words.filter(w => w.isActive)]
     },
+    showRangeFromWord(wordId) {
+      if (this.wordIsLastRange(wordId)) return false
+      if (this.wordIsFirstInRange(wordId)) return true
+      return false
+    },
+    wordIsLastRange(wordId) {
+      return !!this.rangeify(this.getActiveWords()).find(r => r[1] === wordId)
+    },
     wordIsFirstInRange(wordId) {
       return !!this.rangeify(this.getActiveWords()).find(r => r[0] === wordId)
+    },
+    wordsInRange(wordId) {
+      const range = this.rangeify(this.getActiveWords()).find(r => r[0] >= wordId && wordId <= r[1])
+      if (range.length === 1) return []
+      return this.words.filter((w) => {
+        return w.id >= range[0] && w.id <= range[1]
+      })
     },
     // getRangesWithClosebyPunctuation() {
     //   const ranges = this.rangeify(this.getActiveWords())
@@ -114,6 +129,7 @@ export default defineComponent({
     //   return ranges
     // },
     toggleWord(wordId) {
+      console.log('togglewordid', wordId)
       const wordClicked = this.words[wordId]
       if (!wordClicked) return
       wordClicked.isActive = !wordClicked.isActive
@@ -123,6 +139,8 @@ export default defineComponent({
       //   this.words[wordId - 1].isActive = wordClicked.isActive
 
       this.getRangeStrings()
+
+      console.log('result', this.words)
 
       // // const ranges = this.rangeify(this.getActiveWords())
       // const ranges = this.getRangesWithClosebyPunctuation()
@@ -160,23 +178,22 @@ export default defineComponent({
     getRangeStrings() {
       this.words.forEach(w => w.isRange = false)
       const ranges = this.rangeify(this.getActiveWords())
-      const rangeStrings = []
       let tempString = ''
       ranges.forEach((r) => {
+        if (r.length === 1) return
         tempString = ''
         for (let i = r[0]; i <= r[1]; i++) {
           tempString += `${this.words[i].text} `
           this.words[i].isRange = true
         }
+        this.words[r[0]].rangeTextTranslated = `${tempString}`
         this.words[r[0]].rangeText = tempString
-        if (tempString) rangeStrings.push(tempString)
       })
       // console.log('rangeStrings', rangeStrings)
-      return rangeStrings
     },
     rangeify(activeWords) {
       if (!activeWords.length) return []
-      const res = []
+      let res = []
       let run = []
       for (let i = 0; i < activeWords.length; i++) {
         run.push(activeWords[i].id)
@@ -188,6 +205,7 @@ export default defineComponent({
           run = []
         }
       }
+      res = res.filter(r => r.length > 1)
       return res
     },
   },

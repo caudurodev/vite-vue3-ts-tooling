@@ -162,7 +162,6 @@ const getFullSentence = (event) => {
   else {
     str = $(event.target).text()
   }
-
   const sentences = tokenizer.sentences(str, {
     newline_boundaries: false,
     html_boundaries: false,
@@ -188,113 +187,96 @@ const getFullSentence = (event) => {
         '.translatetools',
       ],
       className: 'sentenceHighlight',
-      // each: (e) => {
-      //   $(e).css('background-color', 'pink')
-      // },
     })
   })
-  // console.log('nested', $(target).find('a > learnsentence'))
-
   const clicked = document.elementFromPoint(event.clientX, event.clientY)
-  if ($(clicked).is('learnsentence')) {
-    // $(clicked).css('background-color', 'red')
+  if ($(clicked).is('learnsentence'))
     $(clicked).addClass('thesentence')
-  }
 
   instance.unmark({ exclude: ['.thesentence'] })
-
   return { clicked, x: event.clientX, y: event.clientY }
 }
 
 $(document.body).on('click', (e) => {
   if (
-    $(e.target).is('body, wordwrap, .learnword,.translatetools')
+    $(e.target).is('body, wordwrap, .learnword, .translatetools')
     || !!$(e.target).closest('wordwrap, .learnword, .translatetools').length
-  ) {
-    console.log('abort click')
+  )
     return
-  }
+
   const { word } = WordUnderCursor.getFullWord(e)
-  if (!word) {
-    console.log('abort no word')
+  if (!word)
     return
-  }
+
   if (!$(e.target).closest('body')[0])
     return // removed from DOM
-
-  // const isWrappedWord = !!$(e.target).closest('wordwrap, .learnword').length
-  // if (isWrappedWord) {
-  //   console.log('iswrapped word, abort')
-  //   return
-  // }
 
   const isWrappedSentence = !!$(e.target).closest('sentencewrap').length // sentence already wrapped
   if (!isWrappedSentence) {
     e.preventDefault()
     e.stopPropagation()
     e.stopImmediatePropagation()
-    console.log('wrap sentence', $(e.target))
     const { clicked, x, y } = getFullSentence(e)
     const sentenceText = $(clicked).text()
     $(clicked).empty()
     createApp({ extends: Sentence }, { sentence: sentenceText, x, y }).mount(clicked)
   }
+  console.log('click')
 })
 
-browser.runtime.onMessage.addListener(async(request) => {
-  if (request.action === 'toggle.sidebar')
-    toggleDrawer()
+// browser.runtime.onMessage.addListener(async(request) => {
+//   if (request.action === 'toggle.sidebar')
+//     toggleDrawer()
 
-  if (request.action === 'content.activate')
-    console.log('activate')
+//   if (request.action === 'content.activate')
+//     console.log('activate')
 
-  if (request.action === 'translations.activate') {
-    if (isEnabled.value)
-      console.log('already enabled on page')
+//   if (request.action === 'translations.activate') {
+//     if (isEnabled.value)
+//       console.log('already enabled on page')
 
-    else
-      activateContent()
-  }
-  if (request.action === 'content.language.set') {
-    userLanguage.value = request.userLanguage
-    currentTabLanguage.value = request.currentTabLanguage
-  }
-  if (request.action === 'content.language.detect') {
-    console.log('content.language.detect', request)
+//     else
+//       activateContent()
+//   }
+//   if (request.action === 'content.language.set') {
+//     userLanguage.value = request.userLanguage
+//     currentTabLanguage.value = request.currentTabLanguage
+//   }
+//   if (request.action === 'content.language.detect') {
+//     console.log('content.language.detect', request)
 
-    browser.runtime.sendMessage({
-      action: 'bg.language.detect',
-      currentTabLanguage: currentTabLanguage.value,
-      userLanguage: userLanguage.value,
-    })
-  }
-})
+//     browser.runtime.sendMessage({
+//       action: 'bg.language.detect',
+//       currentTabLanguage: currentTabLanguage.value,
+//       userLanguage: userLanguage.value,
+//     })
+//   }
+// })
 
-const openOptionsPage = () => {
-  browser.runtime.openOptionsPage()
-}
+// const openOptionsPage = () => {
+//   browser.runtime.openOptionsPage()
+// }
 
-const activateTranslations = async() => {
-  console.log('activateTranslations clicked')
-  isActivatingOnPage.value = true
-  activationSuccess.value = false
-  await browser.runtime.sendMessage({
-    action: 'popup.translations.activate',
-  })
-}
+// const activateTranslations = async() => {
+//   isActivatingOnPage.value = true
+//   activationSuccess.value = false
+//   await browser.runtime.sendMessage({
+//     action: 'popup.translations.activate',
+//   })
+// }
 
-const setLanguagePairs = async() => {
-  console.log('setLanguagePairs', userLanguage.value,
-    currentTabLanguage.value)
-  await browser.runtime.sendMessage({
-    action: 'bg.language.set',
-    userLanguage: userLanguage.value,
-    currentTabLanguage: currentTabLanguage.value,
-  })
-}
-const target = ref(null)
+// const setLanguagePairs = async() => {
+//   console.log('setLanguagePairs', userLanguage.value,
+//     currentTabLanguage.value)
+//   await browser.runtime.sendMessage({
+//     action: 'bg.language.set',
+//     userLanguage: userLanguage.value,
+//     currentTabLanguage: currentTabLanguage.value,
+//   })
+// }
+// const target = ref(null)
 
-onClickOutside(target, (event) => { if (isOpen.value) toggleDrawer() })
+// onClickOutside(target, (event) => { if (isOpen.value) toggleDrawer() })
 
 console.log('setup content end')
 </script>
