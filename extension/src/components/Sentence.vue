@@ -1,44 +1,51 @@
 <template>
   <span v-if="words.length > 0" class="learnsentence">
+    <span v-if="sentence[0] === '' " v-html="'&nbsp'" />
     <span
-      v-for="(word,index) in words"
+      v-for="(word, wordIndex) in words"
       :key="word.id"
-      style="display:inline-block;cursor:pointer;"
+      style="display:inline-block; cursor:pointer;"
       :data-id="word.id"
+      :data-tag="word.tag"
       class="learnword"
     >
-      <span v-if="word.isRange && showRangeFromWord(word.id)" style="color:green; display:block">{{ word.rangeTextTranslated }}</span>
-      <span v-if="word.isActive && !word.isRange" style="color:pink; display:block">{{ word.text }}</span>
-      <span v-if="!word.isRange" style="display:inline-block; background-color:red" @click="toggleWord(word.id)">
-        {{ word.text }}
-        <span v-if="index !== words.length && words[word.id + 1]?.tag !== 'punctuation'" v-html="'&nbsp;'" />
+      <span v-if="word.isRange && showRangeFromWord(word.id)" style="color:#066965; display:block;" class="text-center">{{ word.rangeTextTranslated }}</span>
+      <span v-if="word.isActive && !word.isRange" style="color:#066965; display:block">{{ word.translation }}</span>
+      <span v-if="!word.isRange" style="display:inline-block;" @click="toggleWord(word.id)">
+        {{ word.text }}<span v-if="showEmptySpace(word.id, words)" v-html="'&nbsp'" />
       </span>
-      <span v-if="word.isRange && showRangeFromWord(word.id)">
+      <template v-if="word.isRange && showRangeFromWord(word.id)">
         <span v-for="(wordInRange, rangeIndex) in wordsInRange(word.id)" :key="wordInRange.id">
-          <!-- {{ word.rangeText }} -->
           <span style="background-color:yellow" @click="toggleWord(wordInRange.id)">
-            {{ wordInRange.text }}
-            <span v-if="rangeIndex !== wordsInRange(word.id).length && wordInRange[wordInRange.id + 1]?.tag !== 'punctuation'" v-html="'&nbsp;'" />
+            {{ wordInRange.text }}<span v-if="showEmptySpace(wordInRange.id, wordsInRange(word.id))" v-html="'&nbsp'" />
           </span>
         </span>
-      </span>
+      </template>
     </span>
+    <span v-if="sentence[sentence.length-1] === '' " v-html="'&nbsp'" />
   </span>
-  <span class="translatetools mx-2">
-    <button @click="toggleSentenceTranslation()">translate</button>
+  <span v-if="isMounted" class="translatetools">
+    <button
+      class="mx-2 bg-pink-500 text-white py-1 px-2 rounded border-none"
+      @click="toggleSentenceTranslation()"
+    >
+      <icon-park:translate class="stroke-current fill-current block m-auto text-white text-xs" style="color:#FFF" />
+    </button>
     <span
       v-if="isShowingSentenceTranslation"
       style="background-color:pink;color:white;display:inline"
     >
-      {{ sentence }}
+      {{ sentenceTranslation }}
     </span>
   </span>
 </template>
 
 <script lang="ts">
+import 'virtual:windi.css'
 import tokenizer from 'wink-tokenizer'
 import { defineComponent, ref } from 'vue'
 import $ from 'jquery'
+const SERVER_URL = 'https://translate.cauduro.dev'
 
 export default defineComponent({
   props: {
@@ -54,12 +61,21 @@ export default defineComponent({
       type: Number,
       default() { return -1 },
     },
+    currentTabLanguage: {
+      type: String,
+      default() { return '' },
+    },
+    userLanguage: {
+      type: String,
+      default() { return '' },
+    },
   },
   data() {
     return {
       words: [],
       isShowingSentenceTranslation: false,
       isMounted: false,
+      sentenceTranslation: '...',
     }
   },
   computed: {
@@ -69,7 +85,7 @@ export default defineComponent({
   },
   created() {
     this.words = tokenizer().tokenize(this.sentence).map((w, i) => {
-      return { isActive: false, text: w.value, tag: w.tag, id: i, isFirstInRange: false, isRange: false, rangeText: '' }
+      return { isActive: false, text: w.value, translation: '', tag: w.tag, id: i, isFirstInRange: false, isRange: false, rangeText: '' }
     })
   },
   mounted() {
@@ -79,8 +95,33 @@ export default defineComponent({
     this.isMounted = true
   },
   methods: {
-    toggleSentenceTranslation() {
+    translateString(translateText) {
+      return fetch(`${SERVER_URL}/translate`, {
+        method: 'POST',
+        body: JSON.stringify({
+          q: translateText,
+          source: this.currentTabLanguage.value,
+          target: this.userLanguage.value,
+        }),
+        headers: { 'Content-Type': 'application/json' },
+      })
+        .then(response => response.json())
+        .then((data) => {
+          console.log('translation', data.translatedText)
+          return data.translatedText
+        })
+        .catch((e) => {
+          console.log('fetch error', e)
+          return ''
+        })
+    },
+    showEmptySpace(wordId, words) {
+      return words[wordId + 1]?.tag !== 'punctuation' && wordId < words.length
+    },
+    async toggleSentenceTranslation() {
       this.isShowingSentenceTranslation = !this.isShowingSentenceTranslation
+      if (this.isShowingSentenceTranslation && this.sentenceTranslation === '...')
+        this.sentenceTranslation = await this.translateString(this.sentence)
     },
     getActiveWords() {
       if (!this.words) return []
@@ -128,8 +169,7 @@ export default defineComponent({
     //   console.log('ranges', ranges)
     //   return ranges
     // },
-    toggleWord(wordId) {
-      console.log('togglewordid', wordId)
+    async toggleWord(wordId) {
       const wordClicked = this.words[wordId]
       if (!wordClicked) return
       wordClicked.isActive = !wordClicked.isActive
@@ -140,8 +180,8 @@ export default defineComponent({
 
       this.getRangeStrings()
 
-      console.log('result', this.words)
-
+      if (wordClicked.isActive && !wordClicked.isRange && wordClicked.translation === '')
+        wordClicked.translation = await this.translateString(wordClicked.text)
       // // const ranges = this.rangeify(this.getActiveWords())
       // const ranges = this.getRangesWithClosebyPunctuation()
       // // console.log('getActiveWords:', this.getActiveWords())
@@ -175,21 +215,21 @@ export default defineComponent({
       // }
       // console.log('words', this.words)
     },
-    getRangeStrings() {
+    async getRangeStrings() {
       this.words.forEach(w => w.isRange = false)
       const ranges = this.rangeify(this.getActiveWords())
       let tempString = ''
-      ranges.forEach((r) => {
+      for (const r of ranges) {
         if (r.length === 1) return
         tempString = ''
         for (let i = r[0]; i <= r[1]; i++) {
           tempString += `${this.words[i].text} `
           this.words[i].isRange = true
         }
-        this.words[r[0]].rangeTextTranslated = `${tempString}`
+        this.words[r[0]].rangeTextTranslated = '...'
+        this.words[r[0]].rangeTextTranslated = await this.translateString(tempString)
         this.words[r[0]].rangeText = tempString
-      })
-      // console.log('rangeStrings', rangeStrings)
+      }
     },
     rangeify(activeWords) {
       if (!activeWords.length) return []

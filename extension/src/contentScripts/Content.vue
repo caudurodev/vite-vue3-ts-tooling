@@ -211,6 +211,9 @@ $(document.body).on('click', (e) => {
   if (!$(e.target).closest('body')[0])
     return // removed from DOM
 
+  if (isEnabled.value) isEnabled.value = true
+  if (showExtension.value) showExtension.value = true
+
   const isWrappedSentence = !!$(e.target).closest('sentencewrap').length // sentence already wrapped
   if (!isWrappedSentence) {
     e.preventDefault()
@@ -219,7 +222,13 @@ $(document.body).on('click', (e) => {
     const { clicked, x, y } = getFullSentence(e)
     const sentenceText = $(clicked).text()
     $(clicked).empty()
-    createApp({ extends: Sentence }, { sentence: sentenceText, x, y }).mount(clicked)
+    createApp({ extends: Sentence }, {
+      sentence: sentenceText,
+      x,
+      y,
+      currentTabLanguage,
+      userLanguage,
+    }).mount(clicked)
   }
   console.log('click')
 })
