@@ -116,7 +116,8 @@ export default defineComponent({
         })
     },
     showEmptySpace(wordId, words) {
-      return words[wordId + 1]?.tag !== 'punctuation' && wordId < words.length
+      return words[wordId + 1]?.tag !== 'punctuation' || !words[wordId + 1]
+      // && wordId <= words.length
     },
     async toggleSentenceTranslation() {
       this.isShowingSentenceTranslation = !this.isShowingSentenceTranslation
