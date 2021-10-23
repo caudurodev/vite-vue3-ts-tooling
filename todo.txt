@@ -1,0 +1,10 @@
+todo extension
+
+- typescript all the things
+- only make on request per translation and cache result in frontend
+- improve colours of highlighted text
+- way to click links after translatings
+- show options 
+	- languages auto detected
+	- play text to speech
+	- keep extension on for tab/all tabs even when changing url
