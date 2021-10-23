@@ -5,9 +5,13 @@ specifiers:
   '@iconify/json': ^1.1.392
   '@types/fs-extra': ^9.0.12
   '@types/jquery': ^3.5.6
+  '@types/mark.js': ^8.11.6
   '@types/node': ^16.7.1
+  '@types/sbd': ^1.0.2
   '@types/webextension-polyfill': ^0.8.0
+  '@types/wink-tokenizer': ^4.0.3
   '@typescript-eslint/eslint-plugin': ^4.29.3
+  '@typescript-eslint/parser': ^4.0.0
   '@vitejs/plugin-vue': ^1.6.0
   '@vue/compiler-sfc': ^3.2.6
   '@vueuse/core': ^6.0.0
@@ -50,9 +54,13 @@ devDependencies:
   '@iconify/json': 1.1.392
   '@types/fs-extra': 9.0.12
   '@types/jquery': 3.5.6
+  '@types/mark.js': 8.11.6
   '@types/node': 16.7.1
+  '@types/sbd': 1.0.2
   '@types/webextension-polyfill': 0.8.0
-  '@typescript-eslint/eslint-plugin': 4.29.3_eslint@7.32.0+typescript@4.3.5
+  '@types/wink-tokenizer': 4.0.3
+  '@typescript-eslint/eslint-plugin': 4.29.3_b01b7137116ac50f0745961d9cf72d34
+  '@typescript-eslint/parser': 4.29.2_eslint@7.32.0+typescript@4.3.5
   '@vitejs/plugin-vue': 1.6.0_@vue+compiler-sfc@3.2.6
   '@vue/compiler-sfc': 3.2.6
   '@vueuse/core': 6.0.0_vue@3.2.6
@@ -481,6 +489,12 @@ packages:
     resolution: {integrity: sha512-qcUXuemtEu+E5wZSJHNxUXeCZhAfXKQ41D+duX+VYPde7xyEVZci+/oXKJL13tnRs9lR2pr4fod59GT6/X1/yQ==}
     dev: true
 
+  /@types/mark.js/8.11.6:
+    resolution: {integrity: sha512-mhe0gRtOd0UmsnEgO862RTVF4761fbAB5CjdFLwzN7YAhdhefbH25KNQREa++N/L6g4YotygavvHT3UO/0xgnQ==}
+    dependencies:
+      '@types/jquery': 3.5.6
+    dev: true
+
   /@types/node/16.6.2:
     resolution: {integrity: sha512-LSw8TZt12ZudbpHc6EkIyDM3nHVWKYrAvGy6EAJfNfjusbwnThqjqxUKKRwuV3iWYeW/LYMzNgaq3MaLffQ2xA==}
     dev: true
@@ -493,6 +507,10 @@ packages:
     resolution: {integrity: sha512-Gj7cI7z+98M282Tqmp2K5EIsoouUEzbBJhQQzDE3jSIRk6r9gsz0oUokqIUR4u1R3dMHo0pDHM7sNOHyhulypw==}
     dev: true
 
+  /@types/sbd/1.0.2:
+    resolution: {integrity: sha512-BzDvtr990XqZ/4t2c98TNNh7eW5r4TmgrngRu70tliaSaYJAol7CIm3NbhaxPar5ikerpdKhWvob8q6Xq3XnNQ==}
+    dev: true
+
   /@types/sizzle/2.3.3:
     resolution: {integrity: sha512-JYM8x9EGF163bEyhdJBpR2QX1R5naCJHC8ucJylJ3w9/CVBaskdQ8WqBf8MmQrd1kRvp/a4TS8HJ+bxzR7ZJYQ==}
     dev: true
@@ -503,6 +521,10 @@ packages:
 
   /@types/webextension-polyfill/0.8.0:
     resolution: {integrity: sha512-usmQx2snpNkVl2VoOGZCdrPnfHL+CjuSFy84ZdTwQ2b2cvyygF/zGW5YI6Zywk+bfq9zmYpORO9lmdN7DknpRw==}
+    dev: true
+
+  /@types/wink-tokenizer/4.0.3:
+    resolution: {integrity: sha512-GvScwtp6bpVtq9AmSCFr+xu9EJhw436lNQAIecBpkrWVjR7OImJIHJjdznBeJDe5AmusdUbH16cToV9013QQmA==}
     dev: true
 
   /@typescript-eslint/eslint-plugin/4.29.2_b01b7137116ac50f0745961d9cf72d34:
@@ -530,7 +552,7 @@ packages:
       - supports-color
     dev: true
 
-  /@typescript-eslint/eslint-plugin/4.29.3_eslint@7.32.0+typescript@4.3.5:
+  /@typescript-eslint/eslint-plugin/4.29.3_b01b7137116ac50f0745961d9cf72d34:
     resolution: {integrity: sha512-tBgfA3K/3TsZY46ROGvoRxQr1wBkclbVqRQep97MjVHJzcRBURRY3sNFqLk0/Xr//BY5hM9H2p/kp+6qim85SA==}
     engines: {node: ^10.12.0 || >=12.0.0}
     peerDependencies:
@@ -542,6 +564,7 @@ packages:
         optional: true
     dependencies:
       '@typescript-eslint/experimental-utils': 4.29.3_eslint@7.32.0+typescript@4.3.5
+      '@typescript-eslint/parser': 4.29.2_eslint@7.32.0+typescript@4.3.5
       '@typescript-eslint/scope-manager': 4.29.3
       debug: 4.3.2
       eslint: 7.32.0

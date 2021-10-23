@@ -69,31 +69,6 @@
             @update:model-value="shouldSpeakSentences = $event"
           />
         </div>
-        <div v-if="!hideActivationProgress">
-          <button
-            class="
-              mt-5
-              font-bold
-              py-2
-              px-4
-              rounded
-              text-white
-            "
-            :class="{ 'bg-yellow-500 hover:bg-yellow-700': !isEnabled , 'bg-green-500': isEnabled || isActivatingOnPage }"
-            :disabled="isEnabled"
-            @click="activateContent()"
-          >
-            <span v-if="!isEnabled && !isActivatingOnPage">Activate</span>
-            <span v-if="isActivatingOnPage && !isEnabled">
-              <icon-park-outline:loading class="animate-spin block m-auto text-white text-lg" />
-            </span>
-            <span v-if="activationSuccess && isEnabled">
-              Done.
-              <icon-park-outline:check class="block m-auto text-green text-lg" />
-            </span>
-            <span v-if="!activationSuccess && isEnabled">Error</span>
-          </button>
-        </div>
       </div>
     </aside>
   </div>
@@ -110,24 +85,23 @@ import tokenizer from 'sbd'
 
 import getLanguageDefaults from '../logic/detectLanguage'
 import Language from '../types/Language'
-import Word from '../components/Word.vue'
 import Sentence from '../components/Sentence.vue'
 import { WordUnderCursor } from './hover'
 const UNIQUE_INTERFACE_ID = 'aa04weonf43lk0'
 const showExtension = ref(false)
-const wordList = ref([])
-const wordId = ref(0)
-const sentenceId = ref(0)
+// const wordList = ref([])
+// const wordId = ref(0)
+// const sentenceId = ref(0)
 const isEnabled = ref(false)
 const [isOpen, toggleDrawer] = useToggle(false)
 const showProgressBar = ref(false)
-const hideActivationProgress = ref(false)
+// const hideActivationProgress = ref(false)
 const progressValue = ref(0)
-const isActivatingOnPage = ref(false)
-const activeWord = ref('')
-const activationSuccess = ref(false)
+// const isActivatingOnPage = ref(false)
+// const activeWord = ref('')
+// const activationSuccess = ref(false)
 const currentTabLanguage = ref('')
-const speechVoices = ref<[]>([])
+// const speechVoices = ref<[]>([])
 const shouldSpeakWords = ref(false)
 const shouldSpeakSentences = ref(false)
 const languageOptions = ref<Language[]>([
@@ -141,8 +115,8 @@ const languageOptions = ref<Language[]>([
 const browserLanguage = languageOptions.value.filter(l =>
   navigator.language.includes(l.code),
 )
-const userLanguage = ref(
-  browserLanguage.length ? browserLanguage[0].code : false,
+const userLanguage = ref<string>(
+  browserLanguage.length ? browserLanguage[0].code : '',
 )
 
 const init = async() => {
@@ -152,15 +126,15 @@ const init = async() => {
 }
 init()
 
-const getFullSentence = (event) => {
+const getFullSentence = (e: JQuery.TriggeredEvent) => {
   let str = ''
   let useParent = false
-  if ($(event.target).is('a,i,b') && $(event.target).parent().is('p,h1,h2,h3')) {
-    str = $(event.target).parent().text()
+  if ($(e.target).is('a,i,b') && $(e.target).parent().is('p,h1,h2,h3')) {
+    str = $(e.target).parent().text()
     useParent = true
   }
   else {
-    str = $(event.target).text()
+    str = $(e.target).text()
   }
   const sentences = tokenizer.sentences(str, {
     newline_boundaries: false,
@@ -168,9 +142,9 @@ const getFullSentence = (event) => {
     sanitize: false,
     allowed_tags: false,
     preserve_whitespace: true,
-    abbreviations: null,
+    // abbreviations: '',
   })
-  const target = useParent ? $(event.target).parent()[0] : $(event.target)[0]
+  const target = useParent ? $(e.target).parent()[0] : $(e.target)[0]
   const instance = new Mark(target)
   sentences.forEach((s) => {
     const searchSentence = s.replace(/\n/gi, '').replace(/\s+/g, ' ').trim()
@@ -189,15 +163,17 @@ const getFullSentence = (event) => {
       className: 'sentenceHighlight',
     })
   })
-  const clicked = document.elementFromPoint(event.clientX, event.clientY)
-  if ($(clicked).is('learnsentence'))
+  if (!e.clientX || !e.clientY) return {}
+  const clicked = document.elementFromPoint(e.clientX, e.clientY)
+  if (clicked && $(clicked).is('learnsentence')) {
     $(clicked).addClass('thesentence')
-
-  instance.unmark({ exclude: ['.thesentence'] })
-  return { clicked, x: event.clientX, y: event.clientY }
+    instance.unmark({ exclude: ['.thesentence'] })
+    return { clicked, x: e.clientX, y: e.clientY }
+  }
+  return {}
 }
 
-$(document.body).on('click', (e) => {
+$(document.body).on('click', (e: JQuery.TriggeredEvent) => {
   if (
     $(e.target).is('body, wordwrap, .learnword, .translatetools')
     || !!$(e.target).closest('wordwrap, .learnword, .translatetools').length
@@ -220,17 +196,27 @@ $(document.body).on('click', (e) => {
     e.stopPropagation()
     e.stopImmediatePropagation()
     const { clicked, x, y } = getFullSentence(e)
+    if (!clicked || !x || !y) return
     const sentenceText = $(clicked).text()
     $(clicked).empty()
-    createApp({ extends: Sentence }, {
-      sentence: sentenceText,
-      x,
-      y,
-      currentTabLanguage,
-      userLanguage,
-    }).mount(clicked)
+    createApp(
+      {
+        extends: Sentence,
+        setup(props, context) {
+          // necessary otherwise won't run
+          return {
+            ...Sentence.setup({
+              sentence: sentenceText,
+              x,
+              y,
+              currentTabLanguage,
+              userLanguage,
+            }, context),
+          }
+        },
+      },
+    ).mount(clicked)
   }
-  console.log('click')
 })
 
 // browser.runtime.onMessage.addListener(async(request) => {
@@ -238,11 +224,11 @@ $(document.body).on('click', (e) => {
 //     toggleDrawer()
 
 //   if (request.action === 'content.activate')
-//     console.log('activate')
+//     // console.log('activate')
 
 //   if (request.action === 'translations.activate') {
 //     if (isEnabled.value)
-//       console.log('already enabled on page')
+//       // console.log('already enabled on page')
 
 //     else
 //       activateContent()
@@ -274,20 +260,20 @@ $(document.body).on('click', (e) => {
 //   })
 // }
 
-// const setLanguagePairs = async() => {
-//   console.log('setLanguagePairs', userLanguage.value,
-//     currentTabLanguage.value)
-//   await browser.runtime.sendMessage({
-//     action: 'bg.language.set',
-//     userLanguage: userLanguage.value,
-//     currentTabLanguage: currentTabLanguage.value,
-//   })
-// }
-// const target = ref(null)
+const setLanguagePairs = async() => {
+  // console.log('setLanguagePairs', userLanguage.value,
+  //   currentTabLanguage.value)
+  await browser.runtime.sendMessage({
+    action: 'bg.language.set',
+    userLanguage: userLanguage.value,
+    currentTabLanguage: currentTabLanguage.value,
+  })
+}
+const target = ref(null)
 
-// onClickOutside(target, (event) => { if (isOpen.value) toggleDrawer() })
+onClickOutside(target, (event) => { if (isOpen.value) toggleDrawer() })
 
-console.log('setup content end')
+// console.log('setup content end')
 </script>
 
 <style src="../styles/fonts.css"></style>
