@@ -1,5 +1,5 @@
 <template>
-  <span v-if="words && words?.length > 0" class="learnsentence">
+  <span v-if="hasWords" class="learnsentence">
     <span
       v-for="word in words"
       :key="word.id"
@@ -8,8 +8,8 @@
       :data-tag="word.tag"
       class="learnword"
     >
-      <span v-if="word.isRange && showRangeFromWord(word.id,words)" style="color:#066965; display:block;" class="text-center">{{ word.rangeTextTranslated }}</span>
-      <span v-if="word.isActive && !word.isRange" style="color:#066965; display:block">{{ word.translation }}</span>
+      <span v-if="word.isRange && showRangeFromWord(word.id, words)" style="color:#066965;" class="text-center block">{{ word.rangeTextTranslated ?? '...' }}</span>
+      <span v-if="word.isActive && !word.isRange" style="color:#066965; display:block">{{ word.translation ?? '...' }}</span>
       <span v-if="!word.isRange" style="display:inline-block;" :style="word.isActive ? 'background-color:yellow' : ''" @click="toggleWord(word.id, words)">
         {{ word.text }}<span v-if="showEmptySpace(word.id, words)" v-html="'&nbsp'" />
       </span>
@@ -40,6 +40,7 @@
 import 'virtual:windi.css'
 import Tokenizer from 'wink-tokenizer'
 import { defineComponent, ref, toRefs } from 'vue'
+import type { PropType } from 'vue'
 import $ from 'jquery'
 const SERVER_URL = 'https://translate.cauduro.dev'
 const tokenizerInstance = new Tokenizer()
@@ -59,37 +60,44 @@ declare interface Word {
 export default defineComponent({
   props: {
     sentence: {
-      type: String,
+      type: String as PropType<string>,
       default() { return '' },
       required: true,
     },
     x: {
-      type: Number,
+      type: Number as PropType<number>,
       default() { return -1 },
     },
     y: {
-      type: Number,
+      type: Number as PropType<number>,
       default() { return -1 },
     },
     currentTabLanguage: {
-      type: Object,
-      default() { return {} },
+      type: String as PropType<string>,
+      default() { return '' },
     },
     userLanguage: {
-      type: Object,
-      default() { return {} },
+      type: String as PropType<string>,
+      default() { return '' },
     },
   },
   setup(props) {
     const { sentence, x, y, currentTabLanguage, userLanguage } = toRefs(props)
-    const words = ref<[Word]>()
+
+    // const sentence = ref(props.sentence)
+    // const x = ref(props.x)
+    // const y = ref(props.y)
+    // const currentTabLanguage = ref(props.currentTabLanguage)
+    // const userLanguage = ref(props.userLanguage)
+
     const isShowingSentenceTranslation = ref<boolean>(false)
     const isMounted = ref<boolean>(false)
+    const hasWords = ref<boolean>(false)
     const sentenceTranslation = ref<string>('...')
 
-    const rangeify = (activeWords: [Word]): [number] => {
+    const rangeify = (activeWords: [Word]): Array<number> => {
       if (!activeWords.length) return []
-      let res = []
+      const res = []
       let run = []
       for (let i = 0; i < activeWords.length; i++) {
         run.push(activeWords[i].id)
@@ -101,12 +109,11 @@ export default defineComponent({
           run = []
         }
       }
-      res = res.filter(r => r.length > 1)
-      return res
+      return res.filter(r => r.length > 1)
     }
 
-    const getActiveWords = (words: [Word]): [Word] => {
-      if (!words) return <[Word]>[]
+    const getActiveWords = (words: Word[]): Word[] => {
+      if (!words) return []
       return [...words.filter(w => w.isActive)]
     }
 
@@ -134,7 +141,7 @@ export default defineComponent({
         })
     }
 
-    const getRangeStrings = async(words: [Word]) => {
+    const getRangeStrings = async(words: Word[]) => {
       words.forEach(w => w.isRange = false)
       const ranges = rangeify(getActiveWords(words))
       let tempString = ''
@@ -145,13 +152,15 @@ export default defineComponent({
           tempString += `${words[i].text} `
           words[i].isRange = true
         }
-        words[r[0]].rangeTextTranslated = '...'
-        words[r[0]].rangeTextTranslated = await translateString(tempString)
-        words[r[0]].rangeText = tempString
+        if (words[r[0]].rangeText !== tempString) {
+          words[r[0]].rangeTextTranslated = '...'
+          words[r[0]].rangeTextTranslated = await translateString(tempString)
+          words[r[0]].rangeText = tempString
+        }
       }
     }
 
-    const showEmptySpace = (wordId: number, words: [Word]) => {
+    const showEmptySpace = (wordId: number, words: Word[]) => {
       if (!words || !wordId) return false
       return words[wordId + 1]?.tag !== 'punctuation' || !words[wordId + 1]
     }
@@ -162,21 +171,21 @@ export default defineComponent({
         sentenceTranslation.value = await translateString(sentence.value)
     }
 
-    const wordIsLastRange = (wordId: number, words: [Word]) => {
+    const wordIsLastRange = (wordId: number, words: Word[]) => {
       return !!rangeify(getActiveWords(words)).find(r => r[1] === wordId)
     }
 
-    const wordIsFirstInRange = (wordId: number, words: [Word]) => {
+    const wordIsFirstInRange = (wordId: number, words: Word[]) => {
       return !!rangeify(getActiveWords(words)).find(r => r[0] === wordId)
     }
 
-    const showRangeFromWord = (wordId: number, words: [Word]) => {
+    const showRangeFromWord = (wordId: number, words: Word[]) => {
       if (wordIsLastRange(wordId, words)) return false
       if (wordIsFirstInRange(wordId, words)) return true
       return false
     }
 
-    const wordsInRange = (wordId: number, words: [Word]): [Word] => {
+    const wordsInRange = (wordId: number, words: Word[]): Word[] => {
       const range = rangeify(getActiveWords(words)).find(r => r[0] >= wordId && wordId <= r[1])
       if (range?.length === 1) return []
       return words.filter((w) => {
@@ -184,7 +193,7 @@ export default defineComponent({
       })
     }
 
-    const toggleWord = async(wordId: number, words: [Word]) => {
+    const toggleWord = async(wordId: number, words: Word[]): void => {
       const wordClicked = words[wordId]
       if (!wordClicked) return
       wordClicked.isActive = !wordClicked.isActive
@@ -197,9 +206,22 @@ export default defineComponent({
         wordClicked.translation = await translateString(wordClicked.text)
     }
 
-    words.value = tokenizerInstance.tokenize(sentence.value).map((w, i) => {
-      return { isActive: false, text: w.value, translation: '', tag: w.tag, id: i, isFirstInRange: false, isRange: false, rangeText: '' }
-    })
+    const words = ref<Word[]>(
+      tokenizerInstance.tokenize(sentence.value).map((w, i) => {
+        return {
+          isActive: false,
+          text: w.value,
+          translation: '',
+          tag: w.tag,
+          id: i,
+          isFirstInRange: false,
+          isRange: false,
+          rangeText: '',
+          rangeTextTranslated: '',
+        }
+      }),
+    )
+    if (words.value.length) hasWords.value = true
 
     onMounted(() => {
       const wordId = $(document.elementFromPoint(x.value, y.value)).closest('.learnword').attr('data-id')
@@ -213,6 +235,7 @@ export default defineComponent({
       words,
       isShowingSentenceTranslation,
       isMounted,
+      hasWords,
       // ranges,
       sentenceTranslation,
       sentence,
