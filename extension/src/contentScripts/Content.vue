@@ -197,25 +197,28 @@ $(document.body).on('click', (e: JQuery.TriggeredEvent) => {
     e.stopImmediatePropagation()
     const { clicked, x, y } = getFullSentence(e)
     if (!clicked || !x || !y) return
-    const sentenceText = $(clicked).text()
+    const sentenceText = ref<string>($(clicked).text())
     $(clicked).empty()
-    createApp(
-      {
-        extends: Sentence,
-        setup(props, context) {
-          // necessary otherwise won't run
-          return {
-            ...Sentence.setup({
-              sentence: sentenceText,
-              x,
-              y,
-              currentTabLanguage,
-              userLanguage,
-            }, context),
-          }
+
+    if (sentenceText.value !== '' && !!Sentence) {
+      createApp(
+        {
+          extends: Sentence,
+          setup(props, context) {
+            // necessary otherwise won't run
+            return {
+              ...Sentence.setup({
+                sentence: sentenceText,
+                x,
+                y,
+                currentTabLanguage,
+                userLanguage,
+              }, context),
+            }
+          },
         },
-      },
-    ).mount(clicked)
+      ).mount(clicked)
+    }
   }
 })
 
@@ -271,7 +274,8 @@ const setLanguagePairs = async() => {
 }
 const target = ref(null)
 
-onClickOutside(target, (event) => { if (isOpen.value) toggleDrawer() })
+// causing error
+// onClickOutside(target, (event) => { if (isOpen.value) toggleDrawer() })
 
 // console.log('setup content end')
 </script>
