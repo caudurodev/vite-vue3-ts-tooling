@@ -734,7 +734,7 @@ packages:
     dependencies:
       '@vueuse/shared': 6.7.4_vue@3.2.20
       vue: 3.2.20
-      vue-demi: 0.11.4_vue@3.2.20
+      vue-demi: 0.12.0_vue@3.2.20
     dev: true
 
   /@vueuse/shared/6.7.4_vue@3.2.20:
@@ -749,7 +749,7 @@ packages:
         optional: true
     dependencies:
       vue: 3.2.20
-      vue-demi: 0.11.4_vue@3.2.20
+      vue-demi: 0.12.0_vue@3.2.20
     dev: true
 
   /@windicss/config/1.4.12:
@@ -1955,6 +1955,7 @@ packages:
     resolution: {integrity: sha512-xiqMQR4xAeHTuB9uWm+fFRcIOgKBMiOBP+eXiyT7jsgVCq1bkVygt00oASowB7EdtpOHaaPgKt812P9ab+DDKA==}
     engines: {node: ^8.16.0 || ^10.6.0 || >=11.0.0}
     os: [darwin]
+    requiresBuild: true
     dev: true
     optional: true
 
@@ -3457,6 +3458,21 @@ packages:
 
   /vue-demi/0.11.4_vue@3.2.20:
     resolution: {integrity: sha512-/3xFwzSykLW2HiiLie43a+FFgNOcokbBJ+fzvFXd0r2T8MYohqvphUyDQ8lbAwzQ3Dlcrb1c9ykifGkhSIAk6A==}
+    engines: {node: '>=12'}
+    hasBin: true
+    requiresBuild: true
+    peerDependencies:
+      '@vue/composition-api': ^1.0.0-rc.1
+      vue: ^3.0.0-0 || ^2.6.0
+    peerDependenciesMeta:
+      '@vue/composition-api':
+        optional: true
+    dependencies:
+      vue: 3.2.20
+    dev: true
+
+  /vue-demi/0.12.0_vue@3.2.20:
+    resolution: {integrity: sha512-eggsbQSQEJKlvQrtrJLx4J44MIVq5+Z7QetIEh1Na+ZWLgt5Fq0qskQ1QmckTTEoFcUdn36c4K23EjtXZhws7w==}
     engines: {node: '>=12'}
     hasBin: true
     requiresBuild: true

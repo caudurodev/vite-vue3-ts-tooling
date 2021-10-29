@@ -40,7 +40,6 @@
 import 'virtual:windi.css'
 import Tokenizer from 'wink-tokenizer'
 import { defineComponent, ref, toRefs } from 'vue'
-import type { PropType } from 'vue'
 import $ from 'jquery'
 const SERVER_URL = 'https://translate.cauduro.dev'
 const tokenizerInstance = new Tokenizer()
@@ -60,43 +59,36 @@ declare interface Word {
 export default defineComponent({
   props: {
     sentence: {
-      type: String as PropType<string>,
-      default() { return '' },
+      type: String,
+      default: () => '',
       required: true,
     },
     x: {
-      type: Number as PropType<number>,
-      default() { return -1 },
+      type: Number,
+      default: () => -1,
     },
     y: {
-      type: Number as PropType<number>,
-      default() { return -1 },
+      type: Number,
+      default: () => -1,
     },
     currentTabLanguage: {
-      type: String as PropType<string>,
-      default() { return '' },
+      type: String,
+      default: () => '',
     },
     userLanguage: {
-      type: String as PropType<string>,
-      default() { return '' },
+      type: String,
+      default: () => '',
     },
   },
   setup(props) {
     const { sentence, x, y, currentTabLanguage, userLanguage } = toRefs(props)
-
-    // const sentence = ref(props.sentence)
-    // const x = ref(props.x)
-    // const y = ref(props.y)
-    // const currentTabLanguage = ref(props.currentTabLanguage)
-    // const userLanguage = ref(props.userLanguage)
-
     const isShowingSentenceTranslation = ref<boolean>(false)
     const isMounted = ref<boolean>(false)
     const hasWords = ref<boolean>(false)
     const sentenceTranslation = ref<string>('...')
 
-    const rangeify = (activeWords: [Word]): Array<number> => {
-      if (!activeWords.length) return []
+    const rangeify = (activeWords?: Word[]): number[][] => {
+      if (!activeWords) return []
       const res = []
       let run = []
       for (let i = 0; i < activeWords.length; i++) {
@@ -109,7 +101,7 @@ export default defineComponent({
           run = []
         }
       }
-      return res.filter(r => r.length > 1)
+      return res.filter(r => r.length > 1) as number[][]
     }
 
     const getActiveWords = (words: Word[]): Word[] => {
@@ -136,7 +128,7 @@ export default defineComponent({
           return data.translatedText
         })
         .catch((e) => {
-          console.log('fetch error', e)
+          // console.log('fetch error', e)
           return ''
         })
     }
@@ -187,13 +179,11 @@ export default defineComponent({
 
     const wordsInRange = (wordId: number, words: Word[]): Word[] => {
       const range = rangeify(getActiveWords(words)).find(r => r[0] >= wordId && wordId <= r[1])
-      if (range?.length === 1) return []
-      return words.filter((w) => {
-        return w.id >= range[0] && w.id <= range[1]
-      })
+      if (!range || range.length === 1) return [] as Word[]
+      return words.filter(w => w.id >= range[0] && w.id <= range[1]) as Word[]
     }
 
-    const toggleWord = async(wordId: number, words: Word[]): void => {
+    const toggleWord = async(wordId: number, words: Word[]): Promise<void> => {
       const wordClicked = words[wordId]
       if (!wordClicked) return
       wordClicked.isActive = !wordClicked.isActive
@@ -224,10 +214,12 @@ export default defineComponent({
     if (words.value.length) hasWords.value = true
 
     onMounted(() => {
-      const wordId = $(document.elementFromPoint(x.value, y.value)).closest('.learnword').attr('data-id')
-
-      if (wordId && Number(wordId) >= 0)
-        toggleWord(Number(wordId), words.value)
+      const elFromPoints = document.elementFromPoint(x.value, y.value)
+      if (elFromPoints) {
+        const wordId = $(elFromPoints).closest('.learnword').attr('data-id')
+        if (wordId && Number(wordId) >= 0)
+          toggleWord(Number(wordId), words.value)
+      }
       isMounted.value = true
     })
 
@@ -238,7 +230,7 @@ export default defineComponent({
       hasWords,
       // ranges,
       sentenceTranslation,
-      sentence,
+      // sentence,
       showRangeFromWord,
       showEmptySpace,
       toggleWord,
