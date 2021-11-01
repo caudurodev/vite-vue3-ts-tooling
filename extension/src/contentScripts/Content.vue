@@ -78,7 +78,7 @@
 import { ref, createApp } from 'vue'
 import $ from 'jquery'
 import Mark from 'mark.js'
-import { onClickOutside, useToggle } from '@vueuse/core'
+import { useToggle } from '@vueuse/core'
 import browser from 'webextension-polyfill'
 import 'virtual:windi.css'
 import tokenizer from 'sbd'
@@ -208,11 +208,11 @@ $(document.body).on('click', (e: JQuery.TriggeredEvent) => {
             // necessary otherwise won't run
             return {
               ...Sentence.setup({
-                sentence: sentenceText,
+                sentence: sentenceText.value,
                 x,
                 y,
-                currentTabLanguage,
-                userLanguage,
+                currentTabLanguage: currentTabLanguage.value,
+                userLanguage: userLanguage.value,
               }, context),
             }
           },

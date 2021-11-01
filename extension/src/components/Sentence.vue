@@ -41,7 +41,8 @@ import 'virtual:windi.css'
 import Tokenizer from 'wink-tokenizer'
 import { defineComponent, ref, toRefs } from 'vue'
 import $ from 'jquery'
-const SERVER_URL = 'https://translate.cauduro.dev'
+// const SERVER_URL = 'https://translate.cauduro.dev'
+const SERVER_URL = 'http://localhost:5001'
 const tokenizerInstance = new Tokenizer()
 
 declare interface Word {
@@ -113,19 +114,26 @@ export default defineComponent({
     //   return rangeify(getActiveWords(words))
     // }
 
-    const translateString = (translateText: string): Promise<string> => {
+    const translateString = (translateText: string, sentenceText: string, words: Word[], wordId: number): Promise<string> => {
+      const reducedWords = words.reduce((acc, it) => {
+        acc.push({ text: it.text, id: it.id })
+        return acc
+      }, [])
       return fetch(`${SERVER_URL}/translate`, {
         method: 'POST',
         body: JSON.stringify({
-          q: translateText,
-          source: currentTabLanguage.value,
-          target: userLanguage.value,
+          word: translateText,
+          sentenceTokens: reducedWords,
+          wordId,
+          sentence: sentenceText,
+          sourceLang: currentTabLanguage.value,
+          targetLang: userLanguage.value,
         }),
         headers: { 'Content-Type': 'application/json' },
       })
         .then(response => response.json())
         .then((data) => {
-          return data.translatedText
+          return data.translations.word.translation
         })
         .catch((e) => {
           // console.log('fetch error', e)
@@ -146,7 +154,7 @@ export default defineComponent({
         }
         if (words[r[0]].rangeText !== tempString) {
           words[r[0]].rangeTextTranslated = '...'
-          words[r[0]].rangeTextTranslated = await translateString(tempString)
+          // words[r[0]].rangeTextTranslated = await translateString(tempString, sentence.value)
           words[r[0]].rangeText = tempString
         }
       }
@@ -159,8 +167,8 @@ export default defineComponent({
 
     const toggleSentenceTranslation = async() => {
       isShowingSentenceTranslation.value = !isShowingSentenceTranslation.value
-      if (isShowingSentenceTranslation.value && sentenceTranslation.value === '...')
-        sentenceTranslation.value = await translateString(sentence.value)
+      // if (isShowingSentenceTranslation.value && sentenceTranslation.value === '...')
+      // sentenceTranslation.value = await translateString(sentence.value, sentence.value)
     }
 
     const wordIsLastRange = (wordId: number, words: Word[]) => {
@@ -193,7 +201,7 @@ export default defineComponent({
       getRangeStrings(words)
 
       if (wordClicked.isActive && !wordClicked.isRange && wordClicked.translation === '')
-        wordClicked.translation = await translateString(wordClicked.text)
+        wordClicked.translation = await translateString(wordClicked.text, sentence.value, words, wordId)
     }
 
     const words = ref<Word[]>(
