@@ -10,11 +10,11 @@ RUN pip3 install --upgrade pip
 COPY requirements.txt requirements.txt
 RUN pip3 install -r requirements.txt
 RUN pip3 install -U pip setuptools wheel
-RUN pip3 install -U spacy
-RUN python -m spacy download en_core_web_lg
-RUN python -m spacy download de_core_news_lg
-RUN pip3 install -U textblob-de
-RUN python -m textblob.download_corpora
+RUN pip3 install --no-cache-dir -U spacy
+RUN python -m spacy download en_core_web_trf
+RUN python -m spacy download de_dep_news_trf
+# RUN pip3 install -U textblob-de
+# RUN python -m textblob.download_corpora
 
 EXPOSE 5000
 COPY . .

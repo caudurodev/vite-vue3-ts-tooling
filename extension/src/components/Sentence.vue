@@ -125,7 +125,7 @@ export default defineComponent({
           word: translateText,
           sentenceTokens: reducedWords,
           wordId,
-          sentence: sentenceText,
+          sentence: sentenceText.replace(/\r?\n|\r/g, ' ').replace(/\s+/g, ' ').trim(),
           sourceLang: currentTabLanguage.value,
           targetLang: userLanguage.value,
         }),

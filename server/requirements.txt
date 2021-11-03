@@ -3,8 +3,9 @@ flask-cors
 redis
 requests
 spacy
-dict.cc.py
-py-openthesaurus
-deep_translator
-wiktionaryparser
-textblob-de
+nltk
+# dict.cc.py
+# py-openthesaurus
+# deep_translator
+# wiktionaryparser
+# textblob-de
