@@ -105,7 +105,7 @@ def translate():
     # triples = [' '.join(text_tokens[i:i + 3])
     #            for i in range(len(text_tokens) - 2)]
 
-    triples = ngrams(text_tokens, 4)
+    triples = ngrams(text_tokens, 2)
     # print(f'triples: {triples}')
     # print(f'text tokens: {text_tokens}')
 
@@ -118,8 +118,10 @@ def translate():
     print(f'triples_with_term: {triples_with_term}')
 
     separator = '252511812333216698'
-    translation_string = f"{word} {separator} {sentence} {f' {separator} '.join(triples_with_term)}"
+    translation_string = f"{word} {separator} {sentence} {separator} {f' {separator} '.join(triples_with_term)}"
     translated_string = ''
+
+    print(f'translation_string:{translation_string}')
 
     if triples_with_term:
         r = requests.post('http://libretranslate:5000/translate', data={
@@ -128,6 +130,8 @@ def translate():
             'target': targetLang,
         })
         translated_string = r.json()['translatedText']
+
+    print(f'translated_string:{translated_string}')
 
     translated_list = []
     for translation in translated_string.split(separator):
@@ -150,6 +154,7 @@ def translate():
     single_word_translation = translated_list[0]
     occurrences.append(single_word_translation.strip())
     print(f'main translation: {single_word_translation}')
+    print(f'{translated_tokens}')
 
     n1 = Counter(list(ngrams(translated_tokens, 1)))
     # print('n1')
@@ -157,23 +162,29 @@ def translate():
 
     # if single_word_translation in n1.most_common(1)[0][0]:
     # print()
-    print(f'most common n1: {n1.most_common(1)[0][0][0]}')
-    occurrences.append(n1.most_common(1)[0][0][0])
+    try:
+        print(f'most common n1: {n1.most_common(1)[0][0][0]}')
+        # if tie, then dont add...
+        occurrences.append(n1.most_common(1)[0][0][0])
+    except KeyError:
+        pass
 
-    n2 = Counter(list(ngrams(translated_tokens, 2)))
-    # print('n2')
-    # print(n2)
+    # n2 = Counter(list(ngrams(translated_tokens, 2)))
+    # # print('n2')
+    # # print(n2)
 
-    print(f'most common n2: {n2.most_common(1)[0][0]}')
-    for w in n2.most_common(1)[0][0]:
-        occurrences.append(w)
+    # print(f'most common n2: {n2.most_common(1)[0][0]}')
+    # for w in n2.most_common(1)[0][0]:
+    #     # if tie, then dont add...
+    #     occurrences.append(w)
 
-    n3 = Counter(list(ngrams(translated_tokens, 3)))
-    # print('n3')
-    # print(n3)
-    print(f'most common n3: {n3.most_common(1)[0][0]}')
-    for w3 in n3.most_common(1)[0][0]:
-        occurrences.append(w3)
+    # n3 = Counter(list(ngrams(translated_tokens, 3)))
+    # # print('n3')
+    # # print(n3)
+    # print(f'most common n3: {n3.most_common(1)[0][0]}')
+    # for w3 in n3.most_common(1)[0][0]:
+    #     # if tie, then dont add...
+    #     occurrences.append(w3)
     print('occurrences count:')
 
     print(Counter(list(occurrences)))

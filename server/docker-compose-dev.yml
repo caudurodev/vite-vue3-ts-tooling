@@ -22,7 +22,7 @@ services:
     environment:
       - LT_CHAR_LIMIT=50000000
     ports:
-      - 5000:5000
+      - 5002:5000
     networks:
       - language-net
   # languagetool:
