@@ -41,8 +41,8 @@ import 'virtual:windi.css'
 import Tokenizer from 'wink-tokenizer'
 import { defineComponent, ref, toRefs } from 'vue'
 import $ from 'jquery'
-// const SERVER_URL = 'https://translate.cauduro.dev'
-const SERVER_URL = 'http://localhost:5002'
+const SERVER_URL = 'https://translate.cauduro.dev'
+// const SERVER_URL = 'http://localhost:5002'
 const tokenizerInstance = new Tokenizer()
 
 declare interface Word {
