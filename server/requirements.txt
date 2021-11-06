@@ -1,9 +1,10 @@
 flask
 flask-cors
-redis
+# redis
 requests
-spacy
-nltk
+beautifulsoup4
+# spacy
+# nltk
 # dict.cc.py
 # py-openthesaurus
 # deep_translator

@@ -42,7 +42,7 @@ import Tokenizer from 'wink-tokenizer'
 import { defineComponent, ref, toRefs } from 'vue'
 import $ from 'jquery'
 // const SERVER_URL = 'https://translate.cauduro.dev'
-const SERVER_URL = 'http://localhost:5001'
+const SERVER_URL = 'http://localhost:5002'
 const tokenizerInstance = new Tokenizer()
 
 declare interface Word {
@@ -115,25 +115,61 @@ export default defineComponent({
     // }
 
     const translateString = (translateText: string, sentenceText: string, words: Word[], wordId: number): Promise<string> => {
-      const reducedWords = words.reduce((acc, it) => {
-        acc.push({ text: it.text, id: it.id })
-        return acc
-      }, [])
+      let translateString = ''
+      for (let i = 0; i < words.length; i++) {
+        const w = words[i]
+        const prevW = words[i - 1]
+        if (w.isActive && !prevW?.isActive)
+          translateString += ` <mark>${w.text}`
+
+        else if (!w.isActive && prevW?.isActive)
+          translateString += `</mark> ${w.text}`
+
+        else
+          translateString += ` ${w.text}`
+      }
+
+      translateString = `<p>${translateText}</p><p>${sentenceText}</p><p>${translateString}</p>`.replace(/\r?\n|\r/g, ' ').replace(/\s+/g, ' ').trim()
+      console.log('translateText', translateText)
+      console.log('sentenceText', sentenceText)
+      console.log('translateString', translateString)
       return fetch(`${SERVER_URL}/translate`, {
         method: 'POST',
         body: JSON.stringify({
-          word: translateText,
-          sentenceTokens: reducedWords,
-          wordId,
-          sentence: sentenceText.replace(/\r?\n|\r/g, ' ').replace(/\s+/g, ' ').trim(),
-          sourceLang: currentTabLanguage.value,
-          targetLang: userLanguage.value,
+          q: translateString,
+          format: 'html',
+          // translateString: sentenceText,
+          // word: translateText,
+          // sentenceTokens: reducedWords,
+          // wordId,
+          // sentence: sentenceText.replace(/\r?\n|\r/g, ' ').replace(/\s+/g, ' ').trim(),
+          source: currentTabLanguage.value,
+          target: userLanguage.value,
         }),
         headers: { 'Content-Type': 'application/json' },
       })
         .then(response => response.json())
         .then((data) => {
-          return data.translations.word.translation
+          console.log('data.translatedText:', data.translatedText)
+          const span = document.createElement('div')
+          span.innerHTML = data.translatedText
+          let directTranslation = ''
+          let sentenceTranslation = ''
+          let markedTranslation = ''
+          console.log('parts:', $(span).find('p'))
+          $(span).find('p').each((i, p) => {
+            if (i === 0) directTranslation = $(p).text()
+            if (i === 1) sentenceTranslation = $(p).text()
+            if (i === 2) markedTranslation = $(p).find('mark').text()
+          })
+          console.log('directTranslation', directTranslation)
+          console.log('sentenceTranslation', sentenceTranslation)
+          console.log('markedTranslation', markedTranslation)
+          if (markedTranslation) return markedTranslation
+          if (directTranslation) return directTranslation
+          const span2 = document.createElement('span')
+          span2.innerHTML = translateString
+          return $(span2).find('mark').text()
         })
         .catch((e) => {
           // console.log('fetch error', e)

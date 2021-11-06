@@ -33,7 +33,7 @@ services:
       - flat-network
       
   libretranslate:
-    image: libretranslate/libretranslate
+    build: "./Libretranslate/"
     restart: always
     env:
       - LT_LOAD_ONLY=it,en,es,de,fr,pt
