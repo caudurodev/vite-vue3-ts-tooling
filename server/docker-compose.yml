@@ -35,8 +35,9 @@ services:
   libretranslate:
     build: "./Libretranslate/"
     restart: always
-    env:
+    environment:
       - LT_LOAD_ONLY=it,en,es,de,fr,pt
+      - LT_CHAR_LIMIT=5000
     ports:
       - 5000:5000
     networks:
