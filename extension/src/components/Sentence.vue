@@ -114,69 +114,6 @@ export default defineComponent({
     //   return rangeify(getActiveWords(words))
     // }
 
-    const translateString = (translateText: string, sentenceText: string, words: Word[], wordId: number): Promise<string> => {
-      let translateString = ''
-      for (let i = 0; i < words.length; i++) {
-        const w = words[i]
-        const prevW = words[i - 1]
-        if (w.isActive && !prevW?.isActive)
-          translateString += ` <mark>${w.text}`
-
-        else if (!w.isActive && prevW?.isActive)
-          translateString += `</mark> ${w.text}`
-
-        else
-          translateString += ` ${w.text}`
-      }
-
-      translateString = `<p>${translateText}</p><p>${sentenceText}</p><p>${translateString}</p>`.replace(/\r?\n|\r/g, ' ').replace(/\s+/g, ' ').trim()
-      console.log('translateText', translateText)
-      console.log('sentenceText', sentenceText)
-      console.log('translateString', translateString)
-      return fetch(`${SERVER_URL}/translate`, {
-        method: 'POST',
-        body: JSON.stringify({
-          q: translateString,
-          format: 'html',
-          // translateString: sentenceText,
-          // word: translateText,
-          // sentenceTokens: reducedWords,
-          // wordId,
-          // sentence: sentenceText.replace(/\r?\n|\r/g, ' ').replace(/\s+/g, ' ').trim(),
-          source: currentTabLanguage.value,
-          target: userLanguage.value,
-        }),
-        headers: { 'Content-Type': 'application/json' },
-      })
-        .then(response => response.json())
-        .then((data) => {
-          console.log('data.translatedText:', data.translatedText)
-          const span = document.createElement('div')
-          span.innerHTML = data.translatedText
-          let directTranslation = ''
-          let sentenceTranslation = ''
-          let markedTranslation = ''
-          console.log('parts:', $(span).find('p'))
-          $(span).find('p').each((i, p) => {
-            if (i === 0) directTranslation = $(p).text()
-            if (i === 1) sentenceTranslation = $(p).text()
-            if (i === 2) markedTranslation = $(p).find('mark').text()
-          })
-          console.log('directTranslation', directTranslation)
-          console.log('sentenceTranslation', sentenceTranslation)
-          console.log('markedTranslation', markedTranslation)
-          if (markedTranslation) return markedTranslation
-          if (directTranslation) return directTranslation
-          const span2 = document.createElement('span')
-          span2.innerHTML = translateString
-          return $(span2).find('mark').text()
-        })
-        .catch((e) => {
-          // console.log('fetch error', e)
-          return ''
-        })
-    }
-
     const getRangeStrings = async(words: Word[]) => {
       words.forEach(w => w.isRange = false)
       const ranges = rangeify(getActiveWords(words))
@@ -189,8 +126,7 @@ export default defineComponent({
           words[i].isRange = true
         }
         if (words[r[0]].rangeText !== tempString) {
-          words[r[0]].rangeTextTranslated = '...'
-          // words[r[0]].rangeTextTranslated = await translateString(tempString, sentence.value)
+          words[r[0]].rangeTextTranslated = await translateString(words)
           words[r[0]].rangeText = tempString
         }
       }
@@ -204,7 +140,7 @@ export default defineComponent({
     const toggleSentenceTranslation = async() => {
       isShowingSentenceTranslation.value = !isShowingSentenceTranslation.value
       // if (isShowingSentenceTranslation.value && sentenceTranslation.value === '...')
-      // sentenceTranslation.value = await translateString(sentence.value, sentence.value)
+      sentenceTranslation.value = await translateString(words.value)
     }
 
     const wordIsLastRange = (wordId: number, words: Word[]) => {
@@ -237,7 +173,61 @@ export default defineComponent({
       getRangeStrings(words)
 
       if (wordClicked.isActive && !wordClicked.isRange && wordClicked.translation === '')
-        wordClicked.translation = await translateString(wordClicked.text, sentence.value, words, wordId)
+        wordClicked.translation = await translateString(words)
+    }
+
+    const translateString = (words: Word[]): Promise<string> => {
+      let translateString = ''
+      for (let i = 0; i < words.length; i++) {
+        const w = words[i]
+        const prevW = words[i - 1]
+        const firstInRange = wordIsFirstInRange(w.id, words)
+        const lastInRange = wordIsLastRange(w.id, words)
+        const prevLastInRange = wordIsLastRange(prevW?.id, words)
+        // const wordsInCurrentRange = wordsInRange(w.id, words)
+        // const isCurrentRangeAlreadyTranslated = wordsInCurrentRange[0]?.rangeTextTranslated
+
+        console.log(w.text, firstInRange, lastInRange)
+
+        if (firstInRange)
+          translateString += ` <mark>${w.text}`
+        else if (prevLastInRange)
+          translateString += `</mark> ${w.text}`
+        else if (!w.isRange && w.isActive)
+          translateString += ` <mark>${w.text}`
+        else if (!w.isActive && !prevW?.isRange && prevW?.isActive)
+          translateString += `</mark> ${w.text}`
+        else
+          translateString += ` ${w.text}`
+      }
+      translateString = `${translateString}`.replace(/\r?\n|\r/g, ' ').replace(/\s+/g, ' ').trim()
+      console.log('translateString:', translateString)
+      return fetch(`${SERVER_URL}/translate`, {
+        method: 'POST',
+        body: JSON.stringify({
+          q: translateString,
+          format: 'html',
+          source: currentTabLanguage.value,
+          target: userLanguage.value,
+        }),
+        headers: { 'Content-Type': 'application/json' },
+      })
+        .then(response => response.json())
+        .then((data) => {
+          console.log('data.translatedText:', data.translatedText)
+          const span = document.createElement('div')
+          span.innerHTML = data.translatedText
+          const markedTranslation = $(span).find('mark').text()
+          console.log('markedTranslation:', markedTranslation)
+          if (markedTranslation) return markedTranslation
+          const span2 = document.createElement('span')
+          span2.innerHTML = translateString
+          return $(span2).find('mark[data-id=]').text()
+        })
+        .catch((e) => {
+          // console.log('fetch error', e)
+          return ''
+        })
     }
 
     const words = ref<Word[]>(
