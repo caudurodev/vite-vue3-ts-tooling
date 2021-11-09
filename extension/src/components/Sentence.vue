@@ -126,7 +126,7 @@ export default defineComponent({
           words[i].isRange = true
         }
         if (words[r[0]].rangeText !== tempString) {
-          words[r[0]].rangeTextTranslated = await translateString(words)
+          words[r[0]].rangeTextTranslated = await translateString(words[r[0]].id, words)
           words[r[0]].rangeText = tempString
         }
       }
@@ -151,6 +151,10 @@ export default defineComponent({
       return !!rangeify(getActiveWords(words)).find(r => r[0] === wordId)
     }
 
+    const wordRange = (wordId: number, words: Word[]) => {
+      return rangeify(getActiveWords(words)).find(r => r[0] === wordId)
+    }
+
     const showRangeFromWord = (wordId: number, words: Word[]) => {
       if (wordIsLastRange(wordId, words)) return false
       if (wordIsFirstInRange(wordId, words)) return true
@@ -173,35 +177,32 @@ export default defineComponent({
       getRangeStrings(words)
 
       if (wordClicked.isActive && !wordClicked.isRange && wordClicked.translation === '')
-        wordClicked.translation = await translateString(words)
+        wordClicked.translation = await translateString(wordId, words)
     }
 
-    const translateString = (words: Word[]): Promise<string> => {
+    const translateString = (wordId: number, words: Word[]): Promise<string> => {
       let translateString = ''
+      const translatedRanges = []
       for (let i = 0; i < words.length; i++) {
         const w = words[i]
         const prevW = words[i - 1]
         const firstInRange = wordIsFirstInRange(w.id, words)
-        const lastInRange = wordIsLastRange(w.id, words)
+        // const lastInRange = wordIsLastRange(w.id, words)
         const prevLastInRange = wordIsLastRange(prevW?.id, words)
-        // const wordsInCurrentRange = wordsInRange(w.id, words)
-        // const isCurrentRangeAlreadyTranslated = wordsInCurrentRange[0]?.rangeTextTranslated
-
-        console.log(w.text, firstInRange, lastInRange)
-
-        if (firstInRange)
-          translateString += ` <mark>${w.text}`
-        else if (prevLastInRange)
-          translateString += `</mark> ${w.text}`
-        else if (!w.isRange && w.isActive)
-          translateString += ` <mark>${w.text}`
-        else if (!w.isActive && !prevW?.isRange && prevW?.isActive)
-          translateString += `</mark> ${w.text}`
-        else
-          translateString += ` ${w.text}`
+        const currentWordRange = wordRange(w.id, words)
+        if (firstInRange && currentWordRange) {
+          translatedRanges.push(currentWordRange)
+          if (wordId >= currentWordRange[0] && wordId <= currentWordRange[1])
+            translateString += ` <mark data-active="true">${w.text}`
+          else
+            translateString += ` <mark data-active="false">${w.text}`
+        }
+        else if (prevLastInRange) { translateString += `</mark> ${w.text}` }
+        else if (!w.isRange && w.isActive) { translateString += ` <mark data-active="true">${w.text}` }
+        else if (!w.isActive && !prevW?.isRange && prevW?.isActive) { translateString += `</mark> ${w.text}` }
+        else { translateString += ` ${w.text}` }
       }
       translateString = `${translateString}`.replace(/\r?\n|\r/g, ' ').replace(/\s+/g, ' ').trim()
-      console.log('translateString:', translateString)
       return fetch(`${SERVER_URL}/translate`, {
         method: 'POST',
         body: JSON.stringify({
@@ -217,12 +218,7 @@ export default defineComponent({
           console.log('data.translatedText:', data.translatedText)
           const span = document.createElement('div')
           span.innerHTML = data.translatedText
-          const markedTranslation = $(span).find('mark').text()
-          console.log('markedTranslation:', markedTranslation)
-          if (markedTranslation) return markedTranslation
-          const span2 = document.createElement('span')
-          span2.innerHTML = translateString
-          return $(span2).find('mark[data-id=]').text()
+          return $(span).find('mark[data-active=true]').text()
         })
         .catch((e) => {
           // console.log('fetch error', e)
