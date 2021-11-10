@@ -41,6 +41,8 @@ import 'virtual:windi.css'
 import Tokenizer from 'wink-tokenizer'
 import { defineComponent, ref, toRefs } from 'vue'
 import $ from 'jquery'
+// import { tween } from 'popmotion'
+
 const SERVER_URL = 'https://translate.cauduro.dev'
 // const SERVER_URL = 'http://localhost:5002'
 const tokenizerInstance = new Tokenizer()
@@ -114,6 +116,24 @@ export default defineComponent({
     //   return rangeify(getActiveWords(words))
     // }
 
+    const getTranslation = (translationString: string): Promise<string> => {
+      return fetch(`${SERVER_URL}/translate`, {
+        method: 'POST',
+        body: JSON.stringify({
+          q: translationString,
+          format: 'html',
+          source: currentTabLanguage.value,
+          target: userLanguage.value,
+        }),
+        headers: { 'Content-Type': 'application/json' },
+      }).then(response => response.json()).then((data) => {
+        return data.translatedText
+      }).catch((e) => {
+        console.log('fetch translation error', e)
+        return ''
+      })
+    }
+
     const getRangeStrings = async(words: Word[]) => {
       words.forEach(w => w.isRange = false)
       const ranges = rangeify(getActiveWords(words))
@@ -133,8 +153,7 @@ export default defineComponent({
     }
 
     const showEmptySpace = (wordId: number, words: Word[]) => {
-      if (!words || !wordId) return false
-      return words[wordId + 1]?.tag !== 'punctuation' || !words[wordId + 1]
+      return words[wordId + 1]?.tag !== 'punctuation' || words.length !== wordId + 1 || wordId === 0
     }
 
     const toggleSentenceTranslation = async() => {
@@ -176,26 +195,14 @@ export default defineComponent({
 
       getRangeStrings(words)
 
+      // const element = document.querySelector('#b .ball')
+      // const ball = styler(element)
+
+      // tween({ to: 300, duration: 500 })
+      //   .start(v => ball.set('x', v))
+
       if (wordClicked.isActive && !wordClicked.isRange && wordClicked.translation === '')
         wordClicked.translation = await translatePartialString(wordId, words)
-    }
-
-    const getTranslation = (translationString: string): Promise<string> => {
-      return fetch(`${SERVER_URL}/translate`, {
-        method: 'POST',
-        body: JSON.stringify({
-          q: translationString,
-          format: 'html',
-          source: currentTabLanguage.value,
-          target: userLanguage.value,
-        }),
-        headers: { 'Content-Type': 'application/json' },
-      }).then(response => response.json()).then((data) => {
-        return data.translatedText
-      }).catch((e) => {
-        console.log('fetch translation error', e)
-        return ''
-      })
     }
 
     const translatePartialString = async(wordId: number, words: Word[]): Promise<string> => {
