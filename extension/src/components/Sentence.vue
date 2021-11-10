@@ -126,7 +126,7 @@ export default defineComponent({
           words[i].isRange = true
         }
         if (words[r[0]].rangeText !== tempString) {
-          words[r[0]].rangeTextTranslated = await translateString(words[r[0]].id, words)
+          words[r[0]].rangeTextTranslated = await translatePartialString(words[r[0]].id, words)
           words[r[0]].rangeText = tempString
         }
       }
@@ -140,7 +140,7 @@ export default defineComponent({
     const toggleSentenceTranslation = async() => {
       isShowingSentenceTranslation.value = !isShowingSentenceTranslation.value
       // if (isShowingSentenceTranslation.value && sentenceTranslation.value === '...')
-      sentenceTranslation.value = await translateString(words.value)
+      sentenceTranslation.value = await getTranslation(sentence.value)
     }
 
     const wordIsLastRange = (wordId: number, words: Word[]) => {
@@ -151,7 +151,7 @@ export default defineComponent({
       return !!rangeify(getActiveWords(words)).find(r => r[0] === wordId)
     }
 
-    const wordRange = (wordId: number, words: Word[]) => {
+    const wordInRange = (wordId: number, words: Word[]) => {
       return rangeify(getActiveWords(words)).find(r => r[0] === wordId)
     }
 
@@ -177,53 +177,49 @@ export default defineComponent({
       getRangeStrings(words)
 
       if (wordClicked.isActive && !wordClicked.isRange && wordClicked.translation === '')
-        wordClicked.translation = await translateString(wordId, words)
+        wordClicked.translation = await translatePartialString(wordId, words)
     }
 
-    const translateString = (wordId: number, words: Word[]): Promise<string> => {
-      let translateString = ''
-      const translatedRanges = []
-      for (let i = 0; i < words.length; i++) {
-        const w = words[i]
-        const prevW = words[i - 1]
-        const firstInRange = wordIsFirstInRange(w.id, words)
-        // const lastInRange = wordIsLastRange(w.id, words)
-        const prevLastInRange = wordIsLastRange(prevW?.id, words)
-        const currentWordRange = wordRange(w.id, words)
-        if (firstInRange && currentWordRange) {
-          translatedRanges.push(currentWordRange)
-          if (wordId >= currentWordRange[0] && wordId <= currentWordRange[1])
-            translateString += ` <mark data-active="true">${w.text}`
-          else
-            translateString += ` <mark data-active="false">${w.text}`
-        }
-        else if (prevLastInRange) { translateString += `</mark> ${w.text}` }
-        else if (!w.isRange && w.isActive) { translateString += ` <mark data-active="true">${w.text}` }
-        else if (!w.isActive && !prevW?.isRange && prevW?.isActive) { translateString += `</mark> ${w.text}` }
-        else { translateString += ` ${w.text}` }
-      }
-      translateString = `${translateString}`.replace(/\r?\n|\r/g, ' ').replace(/\s+/g, ' ').trim()
+    const getTranslation = (translationString: string): Promise<string> => {
       return fetch(`${SERVER_URL}/translate`, {
         method: 'POST',
         body: JSON.stringify({
-          q: translateString,
+          q: translationString,
           format: 'html',
           source: currentTabLanguage.value,
           target: userLanguage.value,
         }),
         headers: { 'Content-Type': 'application/json' },
+      }).then(response => response.json()).then((data) => {
+        return data.translatedText
+      }).catch((e) => {
+        console.log('fetch translation error', e)
+        return ''
       })
-        .then(response => response.json())
-        .then((data) => {
-          console.log('data.translatedText:', data.translatedText)
-          const span = document.createElement('div')
-          span.innerHTML = data.translatedText
-          return $(span).find('mark[data-active=true]').text()
-        })
-        .catch((e) => {
-          // console.log('fetch error', e)
-          return ''
-        })
+    }
+
+    const translatePartialString = async(wordId: number, words: Word[]): Promise<string> => {
+      const activeWordRange = wordInRange(wordId, words)
+      let translateString = ''
+      for (let i = 0; i < words.length; i++) {
+        const w = words[i]
+        const prevW = words[i - 1]
+        const isWordFirstInRange = wordIsFirstInRange(w.id, words)
+        const isPrevWordLastInRange = wordIsLastRange(prevW?.id, words)
+        if (isWordFirstInRange && activeWordRange && (w.id >= activeWordRange[0] && w.id <= activeWordRange[1]))
+          translateString += ` <mark>${w.text}`
+        else if (isPrevWordLastInRange) translateString += `</mark> ${w.text}`
+        else if (!w.isRange && w.isActive && wordId === w.id)
+          translateString += ` <mark>${w.text}`
+        else if (!w.isActive && !prevW?.isRange && prevW?.isActive && wordId === prevW.id)
+          translateString += `</mark> ${w.text}`
+        else translateString += ` ${w.text}`
+      }
+      translateString = `${translateString}`.replace(/\r?\n|\r/g, ' ').replace(/\s+/g, ' ').trim()
+      const translatedText = await getTranslation(translateString)
+      const span = document.createElement('div')
+      span.innerHTML = translatedText
+      return $(span).find('mark').text()
     }
 
     const words = ref<Word[]>(
