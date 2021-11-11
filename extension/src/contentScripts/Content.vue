@@ -206,6 +206,7 @@ $(document.body).on('click', (e: JQuery.TriggeredEvent) => {
           extends: Sentence,
           setup(props, context) {
             // necessary otherwise won't run
+            if (!Sentence?.setup) return
             return {
               ...Sentence.setup({
                 sentence: sentenceText.value,

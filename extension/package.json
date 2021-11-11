@@ -32,6 +32,7 @@
     "@vitejs/plugin-vue": "^1.9.4",
     "@vue/compiler-sfc": "^3.2.20",
     "@vueuse/core": "^6.7.4",
+    "@windicss/plugin-animations": "^1.0.9",
     "chokidar": "^3.5.2",
     "cross-env": "^7.0.3",
     "crx": "^5.0.1",
@@ -55,7 +56,6 @@
   "dependencies": {
     "jquery": "^3.6.0",
     "mark.js": "^8.11.1",
-    "popmotion": "^11.0.0",
     "sbd": "^1.0.19",
     "transition-style": "^0.1.1",
     "wink-nlp-utils": "^2.0.7",

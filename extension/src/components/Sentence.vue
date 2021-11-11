@@ -9,12 +9,32 @@
       class="learnword"
     >
       <span v-if="word.isRange && showRangeFromWord(word.id, words)" style="color:#066965;" class="text-center block">{{ word.rangeTextTranslated ?? '...' }}</span>
-      <span v-if="word.isActive && !word.isRange" style="color:#066965; display:block">{{ word.translation ?? '...' }}</span>
-      <span v-if="!word.isRange" style="display:inline-block;" :style="word.isActive ? 'background-color:yellow' : ''" @click="toggleWord(word.id, words)">
+      <span v-if="word.isActive && !word.isRange" style="color:#066965; display:block">
+        {{ word.translation ?? '...' }}
+      </span>
+      <span
+        v-if="!word.isRange"
+        :ref="(el):HTMLElement => wordElements[word.id] = el"
+        style="display:inline-block;"
+        :style="word.isActive ? 'background-color:yellow' : ''"
+        @click="toggleWord(word.id, words)"
+      >
         {{ word.text }}<span v-if="showEmptySpace(word.id, words)" v-html="'&nbsp'" />
       </span>
       <template v-if="word.isRange && showRangeFromWord(word.id,words)">
-        <span v-for="wordInRange in wordsInRange(word.id,words)" :key="wordInRange.id">
+        <span
+          v-for="wordInRange in wordsInRange(word.id,words)"
+          :key="wordInRange.id"
+          v-motion
+          :initial="{
+            opacity: 0,
+            y: 100,
+          }"
+          :enter="{
+            opacity: 1,
+            y: 0,
+          }"
+        >
           <span style="background-color:yellow" @click="toggleWord(wordInRange.id,words)">
             {{ wordInRange.text }}<span v-if="showEmptySpace(wordInRange.id, wordsInRange(word.id,words))" v-html="'&nbsp'" />
           </span>
@@ -41,8 +61,7 @@ import 'virtual:windi.css'
 import Tokenizer from 'wink-tokenizer'
 import { defineComponent, ref, toRefs } from 'vue'
 import $ from 'jquery'
-// import { tween } from 'popmotion'
-
+import { MotionDirective as motion } from '@vueuse/motion'
 const SERVER_URL = 'https://translate.cauduro.dev'
 // const SERVER_URL = 'http://localhost:5002'
 const tokenizerInstance = new Tokenizer()
@@ -60,6 +79,9 @@ declare interface Word {
 }
 
 export default defineComponent({
+  directives: {
+    motion: motion(),
+  },
   props: {
     sentence: {
       type: String,
@@ -89,6 +111,11 @@ export default defineComponent({
     const isMounted = ref<boolean>(false)
     const hasWords = ref<boolean>(false)
     const sentenceTranslation = ref<string>('...')
+    const wordElements = ref<HTMLElement[]>([])
+
+    onBeforeUpdate(() => {
+      wordElements.value = []
+    })
 
     const rangeify = (activeWords?: Word[]): number[][] => {
       if (!activeWords) return []
@@ -112,9 +139,17 @@ export default defineComponent({
       return [...words.filter(w => w.isActive)]
     }
 
-    // const ranges = (words) => {
-    //   return rangeify(getActiveWords(words))
-    // }
+    const wordIsLastRange = (wordId: number, words: Word[]) => {
+      return !!rangeify(getActiveWords(words)).find(r => r[1] === wordId)
+    }
+
+    const wordIsFirstInRange = (wordId: number, words: Word[]) => {
+      return !!rangeify(getActiveWords(words)).find(r => r[0] === wordId)
+    }
+
+    const wordInRange = (wordId: number, words: Word[]) => {
+      return rangeify(getActiveWords(words)).find(r => r[0] === wordId)
+    }
 
     const getTranslation = (translationString: string): Promise<string> => {
       return fetch(`${SERVER_URL}/translate`, {
@@ -132,6 +167,30 @@ export default defineComponent({
         console.log('fetch translation error', e)
         return ''
       })
+    }
+
+    const translatePartialString = async(wordId: number, words: Word[]): Promise<string> => {
+      const activeWordRange = wordInRange(wordId, words)
+      let translateString = ''
+      for (let i = 0; i < words.length; i++) {
+        const w = words[i]
+        const prevW = words[i - 1]
+        const isWordFirstInRange = wordIsFirstInRange(w.id, words)
+        const isPrevWordLastInRange = wordIsLastRange(prevW?.id, words)
+        if (isWordFirstInRange && activeWordRange && (w.id >= activeWordRange[0] && w.id <= activeWordRange[1]))
+          translateString += ` <mark>${w.text}`
+        else if (isPrevWordLastInRange) translateString += `</mark> ${w.text}`
+        else if (!w.isRange && w.isActive && wordId === w.id)
+          translateString += ` <mark>${w.text}`
+        else if (!w.isActive && !prevW?.isRange && prevW?.isActive && wordId === prevW.id)
+          translateString += `</mark> ${w.text}`
+        else translateString += ` ${w.text}`
+      }
+      translateString = `${translateString}`.replace(/\r?\n|\r/g, ' ').replace(/\s+/g, ' ').trim()
+      const translatedText = await getTranslation(translateString)
+      const span = document.createElement('div')
+      span.innerHTML = translatedText
+      return $(span).find('mark').text()
     }
 
     const getRangeStrings = async(words: Word[]) => {
@@ -162,18 +221,6 @@ export default defineComponent({
       sentenceTranslation.value = await getTranslation(sentence.value)
     }
 
-    const wordIsLastRange = (wordId: number, words: Word[]) => {
-      return !!rangeify(getActiveWords(words)).find(r => r[1] === wordId)
-    }
-
-    const wordIsFirstInRange = (wordId: number, words: Word[]) => {
-      return !!rangeify(getActiveWords(words)).find(r => r[0] === wordId)
-    }
-
-    const wordInRange = (wordId: number, words: Word[]) => {
-      return rangeify(getActiveWords(words)).find(r => r[0] === wordId)
-    }
-
     const showRangeFromWord = (wordId: number, words: Word[]) => {
       if (wordIsLastRange(wordId, words)) return false
       if (wordIsFirstInRange(wordId, words)) return true
@@ -195,7 +242,21 @@ export default defineComponent({
 
       getRangeStrings(words)
 
-      // const element = document.querySelector('#b .ball')
+      const element = wordElements.value[wordId]
+      $(element).animate(
+        {
+          opacity: 0,
+        },
+        300,
+      ).animate(
+        {
+          opacity: 1,
+        },
+        100,
+        () => {
+          console.log('finished')
+        },
+      )
       // const ball = styler(element)
 
       // tween({ to: 300, duration: 500 })
@@ -203,30 +264,6 @@ export default defineComponent({
 
       if (wordClicked.isActive && !wordClicked.isRange && wordClicked.translation === '')
         wordClicked.translation = await translatePartialString(wordId, words)
-    }
-
-    const translatePartialString = async(wordId: number, words: Word[]): Promise<string> => {
-      const activeWordRange = wordInRange(wordId, words)
-      let translateString = ''
-      for (let i = 0; i < words.length; i++) {
-        const w = words[i]
-        const prevW = words[i - 1]
-        const isWordFirstInRange = wordIsFirstInRange(w.id, words)
-        const isPrevWordLastInRange = wordIsLastRange(prevW?.id, words)
-        if (isWordFirstInRange && activeWordRange && (w.id >= activeWordRange[0] && w.id <= activeWordRange[1]))
-          translateString += ` <mark>${w.text}`
-        else if (isPrevWordLastInRange) translateString += `</mark> ${w.text}`
-        else if (!w.isRange && w.isActive && wordId === w.id)
-          translateString += ` <mark>${w.text}`
-        else if (!w.isActive && !prevW?.isRange && prevW?.isActive && wordId === prevW.id)
-          translateString += `</mark> ${w.text}`
-        else translateString += ` ${w.text}`
-      }
-      translateString = `${translateString}`.replace(/\r?\n|\r/g, ' ').replace(/\s+/g, ' ').trim()
-      const translatedText = await getTranslation(translateString)
-      const span = document.createElement('div')
-      span.innerHTML = translatedText
-      return $(span).find('mark').text()
     }
 
     const words = ref<Word[]>(
@@ -244,7 +281,9 @@ export default defineComponent({
         }
       }),
     )
-    if (words.value.length) hasWords.value = true
+
+    if (words.value.length)
+      hasWords.value = true
 
     onMounted(() => {
       const elFromPoints = document.elementFromPoint(x.value, y.value)
@@ -258,12 +297,11 @@ export default defineComponent({
 
     return {
       words,
+      wordElements,
       isShowingSentenceTranslation,
       isMounted,
       hasWords,
-      // ranges,
       sentenceTranslation,
-      // sentence,
       showRangeFromWord,
       showEmptySpace,
       toggleWord,
