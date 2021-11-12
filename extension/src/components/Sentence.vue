@@ -8,13 +8,17 @@
       :data-tag="word.tag"
       class="learnword"
     >
-      <span v-if="word.isRange && showRangeFromWord(word.id, words)" style="color:#066965;" class="text-center block">{{ word.rangeTextTranslated ?? '...' }}</span>
+      <span v-if="word.isRange && showRangeFromWord(word.id, words)" style="color:#066965;" class="text-center block">
+        {{ word.rangeTextTranslated ?? '...' }}
+      </span>
       <span v-if="word.isActive && !word.isRange" style="color:#066965; display:block">
         {{ word.translation ?? '...' }}
       </span>
       <span
         v-if="!word.isRange"
-        :ref="(el):HTMLElement => wordElements[word.id] = el"
+        :ref="(el:HTMLSpanElement) => {
+          if(el){ singleWordElements[word.id] = el }
+        }"
         style="display:inline-block;"
         :style="word.isActive ? 'background-color:yellow' : ''"
         @click="toggleWord(word.id, words)"
@@ -22,21 +26,15 @@
         {{ word.text }}<span v-if="showEmptySpace(word.id, words)" v-html="'&nbsp'" />
       </span>
       <template v-if="word.isRange && showRangeFromWord(word.id,words)">
-        <span
-          v-for="wordInRange in wordsInRange(word.id,words)"
-          :key="wordInRange.id"
-          v-motion
-          :initial="{
-            opacity: 0,
-            y: 100,
-          }"
-          :enter="{
-            opacity: 1,
-            y: 0,
-          }"
-        >
-          <span style="background-color:yellow" @click="toggleWord(wordInRange.id,words)">
-            {{ wordInRange.text }}<span v-if="showEmptySpace(wordInRange.id, wordsInRange(word.id,words))" v-html="'&nbsp'" />
+        <span v-for="wordInRange in wordsInRange(word.id,words)" :key="wordInRange.id">
+          <span
+            :ref="(el:HTMLSpanElement) => {
+              if(el){ rangeWordElements[wordInRange.id] = el}
+            }"
+            style="background-color:yellow"
+            @click="toggleWord(wordInRange.id, words)"
+          >
+            {{ wordInRange.text }}<span v-if="showEmptySpace(wordInRange.id, wordsInRange(word.id, words))" v-html="'&nbsp'" />
           </span>
         </span>
       </template>
@@ -61,7 +59,6 @@ import 'virtual:windi.css'
 import Tokenizer from 'wink-tokenizer'
 import { defineComponent, ref, toRefs } from 'vue'
 import $ from 'jquery'
-import { MotionDirective as motion } from '@vueuse/motion'
 const SERVER_URL = 'https://translate.cauduro.dev'
 // const SERVER_URL = 'http://localhost:5002'
 const tokenizerInstance = new Tokenizer()
@@ -79,9 +76,6 @@ declare interface Word {
 }
 
 export default defineComponent({
-  directives: {
-    motion: motion(),
-  },
   props: {
     sentence: {
       type: String,
@@ -111,10 +105,12 @@ export default defineComponent({
     const isMounted = ref<boolean>(false)
     const hasWords = ref<boolean>(false)
     const sentenceTranslation = ref<string>('...')
-    const wordElements = ref<HTMLElement[]>([])
+    const singleWordElements = ref<HTMLSpanElement[]>([])
+    const rangeWordElements = ref<HTMLSpanElement[]>([])
 
     onBeforeUpdate(() => {
-      wordElements.value = []
+      singleWordElements.value = []
+      rangeWordElements.value = []
     })
 
     const rangeify = (activeWords?: Word[]): number[][] => {
@@ -242,25 +238,32 @@ export default defineComponent({
 
       getRangeStrings(words)
 
-      const element = wordElements.value[wordId]
-      $(element).animate(
-        {
-          opacity: 0,
-        },
-        300,
-      ).animate(
-        {
-          opacity: 1,
-        },
-        100,
-        () => {
-          console.log('finished')
-        },
-      )
-      // const ball = styler(element)
-
-      // tween({ to: 300, duration: 500 })
-      //   .start(v => ball.set('x', v))
+      const animatedWords: HTMLSpanElement[] = []
+      if (words[wordId].isRange) {
+        words.forEach(({ id, isRange }) => {
+          const el: HTMLSpanElement = rangeWordElements.value[id]
+          console.log('animatedWords', id, isRange, el, rangeWordElements.value)
+          if (isRange && el)
+            animatedWords.push(el)
+        })
+      }
+      else {
+        const el: HTMLSpanElement = singleWordElements.value[wordId]
+        if (el)
+          animatedWords.push(el)
+      }
+      console.log('animate', animatedWords)
+      animatedWords.forEach((el) => {
+        $(el)
+          .css('opacity', 0)
+          .animate(
+            { opacity: 1 },
+            1000,
+            () => {
+              console.log('finished')
+            },
+          )
+      })
 
       if (wordClicked.isActive && !wordClicked.isRange && wordClicked.translation === '')
         wordClicked.translation = await translatePartialString(wordId, words)
@@ -297,7 +300,8 @@ export default defineComponent({
 
     return {
       words,
-      wordElements,
+      singleWordElements,
+      rangeWordElements,
       isShowingSentenceTranslation,
       isMounted,
       hasWords,
