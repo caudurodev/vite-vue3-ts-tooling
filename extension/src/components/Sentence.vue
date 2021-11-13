@@ -238,13 +238,17 @@ export default defineComponent({
 
       getRangeStrings(words)
 
+      await nextTick()
+
       const animatedWords: HTMLSpanElement[] = []
       if (words[wordId].isRange) {
         words.forEach(({ id, isRange }) => {
           const el: HTMLSpanElement = rangeWordElements.value[id]
-          console.log('animatedWords', id, isRange, el, rangeWordElements.value)
-          if (isRange && el)
+
+          if (isRange && el) {
+            // console.log('animatedWords', id, isRange, el, rangeWordElements.value)
             animatedWords.push(el)
+          }
         })
       }
       else {
@@ -252,7 +256,12 @@ export default defineComponent({
         if (el)
           animatedWords.push(el)
       }
+
+      console.log('singleWordElements.value', singleWordElements.value)
+      console.log('rangeWordElements.value', rangeWordElements.value)
+      console.log('words', words)
       console.log('animate', animatedWords)
+
       animatedWords.forEach((el) => {
         $(el)
           .css('opacity', 0)
