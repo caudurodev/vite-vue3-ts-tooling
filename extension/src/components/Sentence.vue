@@ -8,10 +8,23 @@
       :data-tag="word.tag"
       class="learnword"
     >
-      <span v-if="word.isRange && showRangeFromWord(word.id, words)" style="color:#066965;" class="text-center block">
+      <span
+        v-if="word.isRange && showRangeFromWord(word.id, words)"
+        :ref="(el:HTMLSpanElement) => {
+          if(el){ rangeTextTranslatedElements[word.id] = el }
+        }"
+        style="color:#066965;"
+        class="text-center block"
+      >
         {{ word.rangeTextTranslated ?? '...' }}
       </span>
-      <span v-if="word.isActive && !word.isRange" style="color:#066965; display:block">
+      <span
+        v-if="word.isActive && !word.isRange"
+        :ref="(el:HTMLSpanElement) => {
+          if(el){ translationTranslatedElements[word.id] = el }
+        }"
+        style="color:#066965; display:block"
+      >
         {{ word.translation ?? '...' }}
       </span>
       <span
@@ -38,6 +51,15 @@
           </span>
         </span>
       </template>
+      <span v-if="word.isActive && word.href">
+        <a
+          :href="word.href"
+          target="_self"
+          class="clickthrough-link mx-2 bg-pink-500 text-white py-1 px-2 rounded border-none"
+        >
+          <icon-park:link-two class="m-auto text-xs" />
+        </a>
+      </span>
     </span>
     <span v-if="sentence[sentence.length-1] === '' " v-html="'&nbsp'" />
   </span>
@@ -46,7 +68,7 @@
       class="mx-2 bg-pink-500 text-white py-1 px-2 rounded border-none"
       @click="toggleSentenceTranslation()"
     >
-      <icon-park:translate class=" m-auto  text-xs" />
+      <icon-park:translate class="m-auto text-xs" />
     </button>
     <span v-if="isShowingSentenceTranslation" class="bg-pink-500 text-white inline">
       {{ sentenceTranslation }}
@@ -64,15 +86,16 @@ const SERVER_URL = 'https://translate.cauduro.dev'
 const tokenizerInstance = new Tokenizer()
 
 declare interface Word {
+  href: string
   isActive: boolean
-  text: string
-  translation: string
-  tag: string
   id: number
   isFirstInRange: boolean
   isRange: boolean
   rangeText: string
   rangeTextTranslated: string
+  tag: string
+  text: string
+  translation: string
 }
 
 export default defineComponent({
@@ -107,10 +130,14 @@ export default defineComponent({
     const sentenceTranslation = ref<string>('...')
     const singleWordElements = ref<HTMLSpanElement[]>([])
     const rangeWordElements = ref<HTMLSpanElement[]>([])
+    const translationTranslatedElements = ref<HTMLSpanElement[]>([])
+    const rangeTextTranslatedElements = ref<HTMLSpanElement[]>([])
 
     onBeforeUpdate(() => {
       singleWordElements.value = []
       rangeWordElements.value = []
+      translationTranslatedElements.value = []
+      rangeTextTranslatedElements.value = []
     })
 
     const rangeify = (activeWords?: Word[]): number[][] => {
@@ -141,6 +168,13 @@ export default defineComponent({
 
     const wordIsFirstInRange = (wordId: number, words: Word[]) => {
       return !!rangeify(getActiveWords(words)).find(r => r[0] === wordId)
+    }
+
+    const getWordRange = (wordId: number, words: Word[]): number[] => {
+      return rangeify(getActiveWords(words))
+        .find(r =>
+          wordId >= r[0] && wordId <= r[1],
+        )
     }
 
     const wordInRange = (wordId: number, words: Word[]) => {
@@ -240,15 +274,13 @@ export default defineComponent({
 
       await nextTick()
 
+      // original words
       const animatedWords: HTMLSpanElement[] = []
       if (words[wordId].isRange) {
         words.forEach(({ id, isRange }) => {
           const el: HTMLSpanElement = rangeWordElements.value[id]
-
-          if (isRange && el) {
-            // console.log('animatedWords', id, isRange, el, rangeWordElements.value)
+          if (isRange && el)
             animatedWords.push(el)
-          }
         })
       }
       else {
@@ -256,40 +288,50 @@ export default defineComponent({
         if (el)
           animatedWords.push(el)
       }
-
-      console.log('singleWordElements.value', singleWordElements.value)
-      console.log('rangeWordElements.value', rangeWordElements.value)
-      console.log('words', words)
-      console.log('animate', animatedWords)
-
-      animatedWords.forEach((el) => {
+      animatedWords.forEach((el, i) => {
         $(el)
           .css('opacity', 0)
           .animate(
             { opacity: 1 },
-            1000,
-            () => {
-              console.log('finished')
-            },
+            500 + (i * 100),
+            // () => { console.log('finished') },
           )
       })
 
       if (wordClicked.isActive && !wordClicked.isRange && wordClicked.translation === '')
         wordClicked.translation = await translatePartialString(wordId, words)
+
+      await nextTick()
+
+      // translation animate
+      let translationEl: HTMLSpanElement
+      if (words[wordId].isRange)
+        translationEl = rangeTextTranslatedElements.value[getWordRange(wordId, words)[0]]
+      else
+        translationEl = translationTranslatedElements.value[wordId]
+
+      $(translationEl)
+        .css('opacity', 0)
+        .animate(
+          { opacity: 1 },
+          1500,
+          // () => { console.log('finished') },
+        )
     }
 
     const words = ref<Word[]>(
       tokenizerInstance.tokenize(sentence.value).map((w, i) => {
         return {
+          href: '',
           isActive: false,
-          text: w.value,
-          translation: '',
-          tag: w.tag,
           id: i,
           isFirstInRange: false,
           isRange: false,
           rangeText: '',
           rangeTextTranslated: '',
+          tag: w.tag,
+          text: w.value,
+          translation: '',
         }
       }),
     )
@@ -301,15 +343,36 @@ export default defineComponent({
       const elFromPoints = document.elementFromPoint(x.value, y.value)
       if (elFromPoints) {
         const wordId = $(elFromPoints).closest('.learnword').attr('data-id')
-        if (wordId && Number(wordId) >= 0)
+        if (wordId && Number(wordId) >= 0) {
           toggleWord(Number(wordId), words.value)
+
+          const linkHref_1 = $(elFromPoints).closest('a').attr('href')
+          console.log('linkHref_1', linkHref_1)
+          if (linkHref_1) words.value[Number(wordId)].href = linkHref_1
+        }
       }
       isMounted.value = true
+
+      $(document.body).on('click', (e: JQuery.TriggeredEvent) => {
+        const clickEl = $(e.target).closest('a')
+        if (clickEl) {
+          const linkHref = $(e.target).closest('a').attr('href')
+          if ($(e.target).closest('a').hasClass('clickthrough-link')) {
+            console.log('can click', linkHref)
+          }
+          else {
+            console.log('dont proceed click', linkHref)
+            e.preventDefault()
+          }
+        }
+      })
     })
 
     return {
       words,
       singleWordElements,
+      translationTranslatedElements,
+      rangeTextTranslatedElements,
       rangeWordElements,
       isShowingSentenceTranslation,
       isMounted,
