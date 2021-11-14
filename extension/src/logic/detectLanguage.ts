@@ -1,4 +1,5 @@
 import browser from 'webextension-polyfill'
+import $ from 'jquery'
 // const SERVER_URL = 'http://192.168.1.11:6565'
 const SERVER_URL = 'https://translate.cauduro.dev'
 const languageOptions = [
@@ -11,7 +12,18 @@ const languageOptions = [
 ]
 
 const detectLanguage = async() => {
-  const pageText = document.body.innerText
+  let pageText = ''
+  $(document.body).children(':visible').find('p,a,h1,h2').each((i, el) => {
+    const text = $(el).text()
+    if (text && text.split(' ').length > 4 && pageText.length < 500) pageText += ` ${text}`
+  })
+  console.log('pageText', pageText)
+
+  if (!pageText) {
+    console.log('error reading page text')
+    return
+  }
+
   let detectLanguage = {}
   if (browser)
     detectLanguage = await browser.i18n.detectLanguage(pageText)

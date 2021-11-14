@@ -14,7 +14,7 @@
           if(el){ rangeTextTranslatedElements[word.id] = el }
         }"
         style="color:#066965;"
-        class="text-center block"
+        class="text-center block translation"
       >
         {{ word.rangeTextTranslated ?? '...' }}
       </span>
@@ -23,6 +23,7 @@
         :ref="(el:HTMLSpanElement) => {
           if(el){ translationTranslatedElements[word.id] = el }
         }"
+        class="translation"
         style="color:#066965; display:block"
       >
         {{ word.translation ?? '...' }}
@@ -293,7 +294,7 @@ export default defineComponent({
           .css('opacity', 0)
           .animate(
             { opacity: 1 },
-            500 + (i * 100),
+            200 + (i * 100),
             // () => { console.log('finished') },
           )
       })
@@ -314,7 +315,7 @@ export default defineComponent({
         .css('opacity', 0)
         .animate(
           { opacity: 1 },
-          1500,
+          250,
           // () => { console.log('finished') },
         )
     }
@@ -345,9 +346,7 @@ export default defineComponent({
         const wordId = $(elFromPoints).closest('.learnword').attr('data-id')
         if (wordId && Number(wordId) >= 0) {
           toggleWord(Number(wordId), words.value)
-
           const linkHref_1 = $(elFromPoints).closest('a').attr('href')
-          console.log('linkHref_1', linkHref_1)
           if (linkHref_1) words.value[Number(wordId)].href = linkHref_1
         }
       }
@@ -356,12 +355,12 @@ export default defineComponent({
       $(document.body).on('click', (e: JQuery.TriggeredEvent) => {
         const clickEl = $(e.target).closest('a')
         if (clickEl) {
-          const linkHref = $(e.target).closest('a').attr('href')
+          // const linkHref = $(e.target).closest('a').attr('href')
           if ($(e.target).closest('a').hasClass('clickthrough-link')) {
-            console.log('can click', linkHref)
+            // console.log('can click', linkHref)
           }
           else {
-            console.log('dont proceed click', linkHref)
+            // console.log('dont proceed click', linkHref)
             e.preventDefault()
           }
         }
