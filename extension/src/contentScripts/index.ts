@@ -3,7 +3,7 @@
 import { createApp, h } from 'vue'
 import App from './Content.vue'
 
-console.info('[vitesse-webext] Hello world from content script')
+console.log('[vitesse-webext] Hello world from content script')
 
 // communication example: send previous tab title from background page
 // onMessage('tab-prev', ({ data }) => {

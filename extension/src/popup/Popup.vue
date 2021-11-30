@@ -82,10 +82,11 @@ import browser from 'webextension-polyfill'
 import Toggle from '../components/Toggle.vue'
 import Language from '../types/Language'
 import getLanguageDefaults from '../logic/detectLanguage'
+console.log('popup start')
 
-const openOptionsPage = () => {
-  browser.runtime.openOptionsPage()
-}
+// const openOptionsPage = () => {
+//   browser.runtime.openOptionsPage()
+// }
 
 const currentTabLanguage = ref('')
 const languageOptions = ref<Language[]>([
@@ -113,14 +114,18 @@ const shouldSpeakSentences = ref(false)
 
 const activateTranslations = async() => {
   console.log('activateTranslations clicked')
+  console.log('sending background.activate message')
+  // browser.runtime.openOptionsPage()
   isActivatingOnPage.value = true
   activationSuccess.value = false
   await browser.runtime.sendMessage({
     action: 'popup.translations.activate',
   })
+  console.log('activateTranslations after')
 }
 
 browser.runtime.onMessage.addListener(async(request) => {
+  console.log('popup received message', request.action)
   if (request.action === 'popup.language.detect') {
     console.log('popup.language.detect', request)
     currentTabLanguage.value = request.currentTabLanguage
@@ -151,14 +156,16 @@ const getVoices = async() => {
 }
 
 const init = async() => {
-  await browser.runtime.sendMessage({
-    action: 'popup.language.detect',
-  })
-  await browser.runtime.sendMessage({
-    action: 'popup.content.activate',
-  })
+  console.log('init called')
+  // console.log('sending popup.language.detect and popup.content.activate')
+  // await browser.runtime.sendMessage({
+  //   action: 'popup.language.detect',
+  // })
+  // await browser.runtime.sendMessage({
+  //   action: 'popup.content.activate',
+  // })
   getVoices()
 }
 init()
-
+console.log('popup end')
 </script>

@@ -14,8 +14,8 @@ export async function getManifest() {
     version: pkg.version,
     description: pkg.description,
     browser_action: {
-      default_icon: './assets/icon-512.png',
-      // default_popup: './dist/popup/index.html',
+      default_icon: './assets/logo.png',
+      default_popup: './dist/popup/index.html',
     },
     options_ui: {
       page: './dist/options/index.html',
@@ -27,9 +27,9 @@ export async function getManifest() {
       persistent: false,
     },
     icons: {
-      16: './assets/icon-512.png',
-      48: './assets/icon-512.png',
-      128: './assets/icon-512.png',
+      16: './assets/logo.png',
+      48: './assets/logo.png',
+      128: './assets/logo.png',
     },
     permissions: [
       'tabs',
@@ -43,9 +43,12 @@ export async function getManifest() {
     ],
     // content_scripts: [{
     //   matches: ['<all_urls>'],
-    //   // js: ['./dist/contentScripts/index.global.js'],
+    //   js: ['./dist/contentScripts/index.global.js'],
     //   css: ['./dist/contentScripts/style.css'],
     // }],
+    // web_accessible_resources: [
+    //   'dist/contentScripts/style.css',
+    // ],
   }
 
   if (isDev) {

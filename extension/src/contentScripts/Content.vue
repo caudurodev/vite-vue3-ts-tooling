@@ -87,6 +87,8 @@ import getLanguageDefaults from '../logic/detectLanguage'
 import Language from '../types/Language'
 import Sentence from '../components/Sentence.vue'
 import { WordUnderCursor } from './hover'
+console.log('content start...')
+
 const UNIQUE_INTERFACE_ID = 'aa04weonf43lk0'
 const showExtension = ref(false)
 // const wordList = ref([])
@@ -223,34 +225,39 @@ $(document.body).on('click', (e: JQuery.TriggeredEvent) => {
   }
 })
 
-// browser.runtime.onMessage.addListener(async(request) => {
-//   if (request.action === 'toggle.sidebar')
-//     toggleDrawer()
+browser.runtime.onMessage.addListener(async(request) => {
+  console.log('content listener received', request.action)
+  // if (request.action === 'toggle.sidebar')
+  //   toggleDrawer()
 
-//   if (request.action === 'content.activate')
-//     // console.log('activate')
+  // if (request.action === 'content.activate')
+  // // console.log('activate')
 
-//   if (request.action === 'translations.activate') {
-//     if (isEnabled.value)
-//       // console.log('already enabled on page')
+  // {
+  if (request.action === 'translations.activate') {
+    if (isEnabled.value)
+      console.log('already enabled on page')
 
-//     else
-//       activateContent()
-//   }
-//   if (request.action === 'content.language.set') {
-//     userLanguage.value = request.userLanguage
-//     currentTabLanguage.value = request.currentTabLanguage
-//   }
-//   if (request.action === 'content.language.detect') {
-//     console.log('content.language.detect', request)
+    else
+      console.log(' enable on page...')
+      // activateContent()
+  }
+  // }
 
-//     browser.runtime.sendMessage({
-//       action: 'bg.language.detect',
-//       currentTabLanguage: currentTabLanguage.value,
-//       userLanguage: userLanguage.value,
-//     })
-//   }
-// })
+  // if (request.action === 'content.language.set') {
+  //   userLanguage.value = request.userLanguage
+  //   currentTabLanguage.value = request.currentTabLanguage
+  // }
+  // if (request.action === 'content.language.detect') {
+  //   console.log('content.language.detect', request)
+
+  //   browser.runtime.sendMessage({
+  //     action: 'bg.language.detect',
+  //     currentTabLanguage: currentTabLanguage.value,
+  //     userLanguage: userLanguage.value,
+  //   })
+  // }
+})
 
 // const openOptionsPage = () => {
 //   browser.runtime.openOptionsPage()
@@ -265,8 +272,8 @@ $(document.body).on('click', (e: JQuery.TriggeredEvent) => {
 // }
 
 const setLanguagePairs = async() => {
-  // console.log('setLanguagePairs', userLanguage.value,
-  //   currentTabLanguage.value)
+  console.log('setLanguagePairs', userLanguage.value,
+    currentTabLanguage.value)
   await browser.runtime.sendMessage({
     action: 'bg.language.set',
     userLanguage: userLanguage.value,
@@ -278,7 +285,7 @@ const target = ref(null)
 // causing error
 // onClickOutside(target, (event) => { if (isOpen.value) toggleDrawer() })
 
-// console.log('setup content end')
+console.log('setup content end')
 </script>
 
 <style src="../styles/fonts.css"></style>

@@ -17,10 +17,10 @@ const detectLanguage = async() => {
     const text = $(el).text()
     if (text && text.split(' ').length > 4 && pageText.length < 500) pageText += ` ${text}`
   })
-  console.log('pageText', pageText)
+  // console.log('pageText', pageText)
 
   if (!pageText) {
-    console.log('error reading page text')
+    console.warn('Error reading page text')
     return
   }
 
