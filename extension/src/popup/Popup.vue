@@ -1,5 +1,5 @@
 <template>
-  <main class="w-[260px] px-4 py-5 text-center text-gray-700">
+  <main class="w-auto px-4 py-5 text-center text-gray-700">
     <h3 class="py-2">
       Your Language
     </h3>
@@ -50,6 +50,9 @@
         @update:model-value="isSpeakingSentences = $event"
       />
     </div>
+    activeTabs: {{ activeTabs }}<br />
+    currentActiveTabId:{{ currentActiveTabId }}<br />
+    isEnabled:{{ isEnabled }}
     <button
       class="
         mt-5
@@ -103,25 +106,32 @@ const browserLanguage = languageOptions.value.filter(l =>
 const userLanguage = ref(
   browserLanguage.length ? browserLanguage[0].code : false,
 )
-const isEnabled = ref(false)
+
 const isActivatingOnPage = ref(false)
-const activationSuccess = ref(false)
+const activationSuccess = ref(true)
 const isSpeakingWords = ref(false)
 const isSpeakingSentences = ref(false)
 const speechVoices = ref<[]>([])
 const shouldSpeakWords = ref(false)
 const shouldSpeakSentences = ref(false)
+const activeTabs = ref<number[]>([])
+const currentActiveTabId = ref<number>()
+
+const isEnabled = computed(() => {
+  if (!activeTabs.value.length || !currentActiveTabId.value) return false
+  return activeTabs.value.find(t => t === currentActiveTabId.value)
+})
 
 const activateTranslations = async() => {
   console.log('activateTranslations clicked')
-  console.log('sending background.activate message')
+  console.log('sending popup.activate')
   // browser.runtime.openOptionsPage()
   isActivatingOnPage.value = true
   activationSuccess.value = false
   await browser.runtime.sendMessage({
-    action: 'popup.translations.activate',
+    action: 'popup.activate',
   })
-  console.log('activateTranslations after')
+  console.log('sent popup.activate')
 }
 
 browser.runtime.onMessage.addListener(async(request) => {
@@ -132,10 +142,19 @@ browser.runtime.onMessage.addListener(async(request) => {
     userLanguage.value = request.userLanguage
   }
 
-  if (request.action === 'activate.finished') {
+  if (request.action === 'popup.activate.finished') {
+    console.log('popup.activate.finished', request)
     isEnabled.value = true
     isActivatingOnPage.value = false
-    activationSuccess.value = request.result
+    activationSuccess.value = true
+    userLanguage.value = request.userLanguage
+    currentTabLanguage.value = request.currentTabLanguage
+  }
+
+  if (request.action === 'popup.activeTabs') {
+    activeTabs.value = request.activeTabs
+    currentActiveTabId.value = request.currentActiveTabId
+    console.log('request.activeTabs ', request.activeTabs, request.currentActiveTabId)
   }
 })
 
@@ -155,17 +174,17 @@ const getVoices = async() => {
   return voices
 }
 
-const init = async() => {
+onMounted(async() => {
   console.log('init called')
   // console.log('sending popup.language.detect and popup.content.activate')
-  // await browser.runtime.sendMessage({
-  //   action: 'popup.language.detect',
-  // })
+  console.log('popup request bg.activeTabs')
+  await browser.runtime.sendMessage({
+    action: 'bg.activeTabs',
+  })
   // await browser.runtime.sendMessage({
   //   action: 'popup.content.activate',
   // })
   getVoices()
-}
-init()
+})
 console.log('popup end')
 </script>
