@@ -1,5 +1,5 @@
 <template>
-  <main class="w-auto px-4 py-5 text-center text-gray-700">
+  <main class="w-300px px-4 py-5 text-center text-gray-700">
     <h3 class="py-2">
       Your Language
     </h3>
@@ -50,9 +50,6 @@
         @update:model-value="isSpeakingSentences = $event"
       />
     </div>
-    activeTabs: {{ activeTabs }}<br />
-    currentActiveTabId:{{ currentActiveTabId }}<br />
-    isEnabled:{{ isEnabled }}
     <button
       class="
         mt-5
@@ -82,9 +79,10 @@
 <script setup lang="ts">
 import { ref } from 'vue'
 import browser from 'webextension-polyfill'
+import activeTab from '../types/activeTab'
 import Toggle from '../components/Toggle.vue'
 import Language from '../types/Language'
-import getLanguageDefaults from '../logic/detectLanguage'
+// import getLanguageDefaults from '../logic/detectLanguage'
 console.log('popup start')
 
 // const openOptionsPage = () => {
@@ -111,16 +109,13 @@ const isActivatingOnPage = ref(false)
 const activationSuccess = ref(true)
 const isSpeakingWords = ref(false)
 const isSpeakingSentences = ref(false)
-const speechVoices = ref<[]>([])
-const shouldSpeakWords = ref(false)
-const shouldSpeakSentences = ref(false)
-const activeTabs = ref<number[]>([])
+// const speechVoices = ref<[]>([])
+// const shouldSpeakWords = ref(false)
+// const shouldSpeakSentences = ref(false)
+const contentActiveTab = ref<activeTab>()
 const currentActiveTabId = ref<number>()
 
-const isEnabled = computed(() => {
-  if (!activeTabs.value.length || !currentActiveTabId.value) return false
-  return activeTabs.value.find(t => t === currentActiveTabId.value)
-})
+const isEnabled = computed(() => contentActiveTab.value?.id === currentActiveTabId.value)
 
 const activateTranslations = async() => {
   console.log('activateTranslations clicked')
@@ -140,21 +135,24 @@ browser.runtime.onMessage.addListener(async(request) => {
     console.log('popup.language.detect', request)
     currentTabLanguage.value = request.currentTabLanguage
     userLanguage.value = request.userLanguage
+    currentActiveTabId.value = request.currentActiveTabId
   }
 
   if (request.action === 'popup.activate.finished') {
     console.log('popup.activate.finished', request)
-    isEnabled.value = true
     isActivatingOnPage.value = false
     activationSuccess.value = true
-    userLanguage.value = request.userLanguage
-    currentTabLanguage.value = request.currentTabLanguage
+    userLanguage.value = request.activeTab.userLanguage
+    currentTabLanguage.value = request.activeTab.currentTabLanguage
+    contentActiveTab.value = request.activeTab
   }
 
   if (request.action === 'popup.activeTabs') {
-    activeTabs.value = request.activeTabs
+    contentActiveTab.value = request.activeTab
     currentActiveTabId.value = request.currentActiveTabId
-    console.log('request.activeTabs ', request.activeTabs, request.currentActiveTabId)
+    userLanguage.value = request.activeTab.userLanguage
+    currentTabLanguage.value = request.activeTab.currentTabLanguage
+    console.log('request.activeTabs ', request)
   }
 })
 

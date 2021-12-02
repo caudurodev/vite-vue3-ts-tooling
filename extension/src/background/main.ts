@@ -1,8 +1,10 @@
 import browser from 'webextension-polyfill'
+import activeTab from '../types/activeTab'
 console.log('background script loaded')
 
 let currentActiveTabId = -1
-let activeTabs: number[] = []
+
+let activeTabs: activeTab[] = []
 
 browser.tabs.onActivated.addListener((tabId, changeInfo, tab) => {
   browser.tabs.get(tabId.tabId)
@@ -26,41 +28,6 @@ const sendMessageToActiveTab = async(message) => {
     .catch(e => console.log('message error', e))
   console.log('sendMessageToActiveTab 1')
 }
-
-// browser.tabs.get(tabId, callback)
-// browser.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
-//   console.log('tab updated', tabId, changeInfo, tab)
-//   if (activeTabs.includes(tabId))
-//     activeTabs = activeTabs.filter(n => n !== tabId)
-// })
-
-// browser.tabs.onRemoved.addListener((tabId) => {
-//   console.log('tab removed', tabId)
-//   if (activeTabs.includes(tabId))
-//     activeTabs = activeTabs.filter(n => n !== tabId)
-// })
-
-// browser.browserAction.onClicked.addListener(async(activeTab) => {
-//   console.log('bg click')
-//   const tabId = activeTab.id
-//   console.log('backgroundscript clicked tabId', tabId, activeTabs)
-//   if (!activeTabs.includes(tabId)) {
-//     // change browser button badge test
-//     // browser.browserAction.setBadgeBackgroundColor({ color: [213, 63, 140, 230] })
-//     // browser.browserAction.setBadgeText({ text: '1' })
-
-//     console.log('backgroundscript activating tab id', tabId)
-//     activeTabs.push(tabId)
-//     browser.tabs.executeScript({ file: '/dist/contentScripts/index.global.js' }).catch(e => console.warn('file js error', e))
-//     browser.tabs.insertCSS({ file: '/dist/contentScripts/style.css' }).catch(e => console.warn('file css error', e))
-//     console.log('injected files')
-//   }
-//   else {
-//     console.log('already active tab id', tabId)
-//     await sendMessageToActiveTab({ action: 'toggle.sidebar' })
-//   }
-//   console.log('activeTabs', activeTabs)
-// })
 
 // only on dev mode
 // if (import.meta.hot) {
@@ -96,10 +63,22 @@ browser.runtime.onMessage.addListener(async(request) => {
 
   if (request.action === 'bg.tab.ready') {
     console.log('background sending popup.activate.finished', request)
+    const activeTab = {
+      id: currentActiveTabId,
+      currentTabLanguage: request.userLanguage,
+      userLanguage: request.currentTabLanguage,
+
+    }
+    activeTabs.push(activeTab)
+    // browser.runtime.sendMessage({
+    //   action: 'popup.activeTabs',
+    //   activeTabs,
+    //   currentActiveTabId,
+    // })
     browser.runtime.sendMessage({
       action: 'popup.activate.finished',
-      userLanguage: request.userLanguage,
-      currentTabLanguage: request.currentTabLanguage,
+      activeTab,
+      currentActiveTabId,
     })
   }
 
@@ -108,19 +87,14 @@ browser.runtime.onMessage.addListener(async(request) => {
     await sendMessageToActiveTab({
       action: 'content.activate',
     })
-    activeTabs.push(currentActiveTabId)
-    browser.runtime.sendMessage({
-      action: 'popup.activeTabs',
-      activeTabs,
-      currentActiveTabId,
-    })
   }
 
   if (request.action === 'bg.activeTabs') {
-    console.log('send active tabs to popup', activeTabs)
+    const activeTab = activeTabs.find(t => t.id === currentActiveTabId)
+    console.log('send active tabs to popup', activeTab, activeTabs)
     browser.runtime.sendMessage({
       action: 'popup.activeTabs',
-      activeTabs,
+      activeTab,
       currentActiveTabId,
     })
   }
@@ -129,6 +103,6 @@ browser.runtime.onMessage.addListener(async(request) => {
 // --- On Reloading ---
 browser.webNavigation.onCommitted.addListener((details) => {
   console.log('remove', details.tabId, 'from', activeTabs)
-  activeTabs = activeTabs.filter(t => t !== details.tabId)
+  activeTabs = activeTabs.filter(t => t.id !== details.tabId)
   console.log('result activeTabs', activeTabs)
 })
