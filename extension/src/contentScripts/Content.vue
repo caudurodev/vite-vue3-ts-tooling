@@ -11,35 +11,15 @@ import 'virtual:windi.css'
 import tokenizer from 'sbd'
 
 import getLanguageDefaults from '../logic/detectLanguage'
-import Language from '../types/Language'
 import Sentence from '../components/Sentence.vue'
 import { WordUnderCursor } from './hover'
 
 const showExtension = ref(false)
 const isEnabled = ref(false)
 const currentTabLanguage = ref('')
-const languageOptions = ref<Language[]>([
-  { label: 'English', code: 'en' },
-  { label: 'Deutsch', code: 'de' },
-  { label: 'Português', code: 'pt' },
-  { label: 'Italiano', code: 'it' },
-  { label: 'Français', code: 'fr' },
-  { label: 'Español', code: 'es' },
-])
-const browserLanguage = languageOptions.value.filter(l =>
-  navigator.language.includes(l.code),
-)
-const userLanguage = ref<string>(
-  browserLanguage.length ? browserLanguage[0].code : '',
-)
-
-const init = async() => {
-  const defaults = await getLanguageDefaults()
-  currentTabLanguage.value = defaults.currentTabLanguage
-  userLanguage.value = defaults.userLanguage
-  console.log('lang defaults tab:', currentTabLanguage.value, 'userLanguage', userLanguage.value)
-}
-init()
+const userLanguage = ref<string>('')
+const speakWords = ref<boolean>(false)
+const speakSentences = ref<boolean>(false)
 
 const getFullSentence = (e: JQuery.TriggeredEvent) => {
   let str = ''
@@ -93,8 +73,10 @@ function trackContentClicks() {
     if (
       $(e.target).is('body, wordwrap, .learnword, .translatetools')
     || !!$(e.target).closest('wordwrap, .learnword, .translatetools').length
-    || !!$(e.target).find('img').length
     ) {
+      return
+    }
+    else if ($(e.target).find('img').length || $(e.target).closest('img').length) {
       $(e.target).trigger('click')
       return
     }
@@ -133,6 +115,8 @@ function trackContentClicks() {
                   y,
                   currentTabLanguage: currentTabLanguage.value,
                   userLanguage: userLanguage.value,
+                  speakWords: speakWords.value,
+                  speakSentences: speakSentences.value,
                 }, context),
               }
             },
@@ -144,19 +128,31 @@ function trackContentClicks() {
 }
 
 browser.runtime.onMessage.addListener(async(request) => {
-  console.log('content listener received', request.action)
-  if (request.action === 'content.activate') {
-    console.log('content.activate')
-    trackContentClicks()
-    await browser.runtime.sendMessage({
-      action: 'bg.tab.ready',
-      userLanguage: userLanguage.value,
-      currentTabLanguage: currentTabLanguage.value,
-    })
+  console.log('content listener received', request)
+  if (request.action === 'content.settings') {
+    userLanguage.value = request.currentAvtiveTab.userLanguage
+    currentTabLanguage.value = request.currentAvtiveTab.currentTabLanguage
+    speakWords.value = request.extensionSettings.speakWords
+    speakSentences.value = request.extensionSettings.speakSentences
   }
 })
 
-console.log('setup content end')
+onMounted(async() => {
+  trackContentClicks()
+  try {
+    const { currentTabLanguage: initialCurrentTabLanguage, userLanguage: initialUserLanguage } = await getLanguageDefaults()
+    userLanguage.value = initialUserLanguage
+    currentTabLanguage.value = initialCurrentTabLanguage
+  }
+  catch (e: any) {
+    console.warn('error getLanguageDefaults', e?.message)
+  }
+  await browser.runtime.sendMessage({
+    action: 'bg.tab.ready',
+    userLanguage: userLanguage.value,
+    currentTabLanguage: currentTabLanguage.value,
+  })
+})
 </script>
 
 <style src="../styles/fonts.css"></style>

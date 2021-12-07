@@ -122,9 +122,17 @@ export default defineComponent({
       type: String,
       default: () => '',
     },
+    speakWords: {
+      type: Boolean,
+      default: false,
+    },
+    speakSentences: {
+      type: Boolean,
+      default: false,
+    },
   },
   setup(props) {
-    const { sentence, x, y, currentTabLanguage, userLanguage } = toRefs(props)
+    const { sentence, x, y, currentTabLanguage, speakSentences, speakWords, userLanguage } = toRefs(props)
     const isShowingSentenceTranslation = ref<boolean>(false)
     const isMounted = ref<boolean>(false)
     const hasWords = ref<boolean>(false)
@@ -272,6 +280,9 @@ export default defineComponent({
         words[wordId + 1].isActive = wordClicked.isActive
 
       getRangeStrings(words)
+
+      if (speakWords.value)
+        console.log('speak', wordClicked)
 
       await nextTick()
 

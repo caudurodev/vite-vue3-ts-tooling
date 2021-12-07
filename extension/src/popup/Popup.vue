@@ -1,12 +1,11 @@
 <template>
   <main class="w-300px px-4 py-5 text-center text-gray-700">
     <h3 class="py-2">
-      Your Language
+      Your Language - userLanguage{{ userLanguage }}
     </h3>
     <select
       v-model="userLanguage"
       class="w-full mb-4 p-2 bg-green-300 text-gray-600 rounded"
-      @change="setLanguagePairs"
     >
       <option
         v-for="lang in languageOptions"
@@ -17,12 +16,11 @@
       </option>
     </select>
     <h3 class="py-2">
-      Tab Language
+      Tab Language - currentTabLanguage {{ currentTabLanguage }}
     </h3>
     <select
       v-model="currentTabLanguage"
       class="w-full mb-4 p-2 bg-green-300 text-gray-600 rounded"
-      @change="setLanguagePairs"
     >
       <option
         v-for="lang in languageOptions"
@@ -37,8 +35,8 @@
         <p>Say Words</p>
       </div>
       <Toggle
-        :model-value="isSpeakingWords"
-        @update:model-value="isSpeakingWords = $event"
+        :model-value="extensionSettings.speakWords"
+        @update:model-value="extensionSettings.speakWords = $event"
       />
     </div>
     <div class="px-3 py-2 flex items-center justify-between">
@@ -46,11 +44,21 @@
         <p>Say Sentences</p>
       </div>
       <Toggle
-        :model-value="isSpeakingSentences"
-        @update:model-value="isSpeakingSentences = $event"
+        :model-value="extensionSettings.speakSentences"
+        @update:model-value="extensionSettings.speakSentences = $event"
+      />
+    </div>
+    <div class="px-3 py-2 flex items-center justify-between">
+      <div class="flex items center space-x-2">
+        <p>Start Extension in all new Tabs</p>
+      </div>
+      <Toggle
+        :model-value="extensionSettings.isExtensionActiveInAllTabs"
+        @update:model-value="extensionSettings.isExtensionActiveInAllTabs = $event"
       />
     </div>
     <button
+      v-if="!isEnabled"
       class="
         mt-5
         font-bold
@@ -63,7 +71,7 @@
       :disabled="isEnabled"
       @click="activateTranslations()"
     >
-      <span v-if="!isEnabled && !isActivatingOnPage">Activate</span>
+      <span v-if="!isEnabled && !isActivatingOnPage">Activate on this Tab</span>
       <span v-if="isActivatingOnPage && !isEnabled">
         <icon-park-outline:loading class="animate-spin block m-auto text-white text-lg" />
       </span>
@@ -79,17 +87,16 @@
 <script setup lang="ts">
 import { ref } from 'vue'
 import browser from 'webextension-polyfill'
-import activeTab from '../types/activeTab'
+import tabData from '../types/tabData'
 import Toggle from '../components/Toggle.vue'
 import Language from '../types/Language'
-// import getLanguageDefaults from '../logic/detectLanguage'
-console.log('popup start')
+import { getBrowserLanguage } from '../logic/detectLanguage'
 
 // const openOptionsPage = () => {
 //   browser.runtime.openOptionsPage()
 // }
-
-const currentTabLanguage = ref('')
+const voices = ref()
+const currentTabLanguage = ref<string>()
 const languageOptions = ref<Language[]>([
   { label: 'English', code: 'en' },
   { label: 'Deutsch', code: 'de' },
@@ -98,91 +105,83 @@ const languageOptions = ref<Language[]>([
   { label: 'Français', code: 'fr' },
   { label: 'Español', code: 'es' },
 ])
-const browserLanguage = languageOptions.value.filter(l =>
-  navigator.language.includes(l.code),
-)
-const userLanguage = ref(
-  browserLanguage.length ? browserLanguage[0].code : false,
-)
+const userLanguage = ref<string>()
 
-const isActivatingOnPage = ref(false)
-const activationSuccess = ref(true)
-const isSpeakingWords = ref(false)
-const isSpeakingSentences = ref(false)
-// const speechVoices = ref<[]>([])
-// const shouldSpeakWords = ref(false)
-// const shouldSpeakSentences = ref(false)
-const contentActiveTab = ref<activeTab>()
-const currentActiveTabId = ref<number>()
+const isActivatingOnPage = ref<boolean>(false)
+const activationSuccess = ref<boolean>(true)
 
-const isEnabled = computed(() => contentActiveTab.value?.id === currentActiveTabId.value)
+interface ExtensionSettings {
+  speakWords: boolean
+  speakSentences: boolean
+  isExtensionActiveInAllTabs: boolean
+}
+
+const extensionSettings = ref<ExtensionSettings>({
+  speakWords: false,
+  speakSentences: false,
+  isExtensionActiveInAllTabs: false,
+})
+
+const currentActiveTab = ref<tabData>()
+const activeTabId = ref<number>()
+
+const isEnabled = computed(() => !!(currentActiveTab.value?.id === activeTabId.value && currentTabLanguage.value && userLanguage.value))
+
+function updateSettings() {
+  console.log('updateSettings', currentActiveTab.value?.id, ' === ', activeTabId.value, currentTabLanguage.value, userLanguage.value)
+
+  if (!currentTabLanguage.value || !userLanguage.value) return
+  browser.runtime.sendMessage({
+    action: 'bg.extensionSettings',
+    extensionSettings: extensionSettings.value,
+    currentTabLanguage: currentTabLanguage.value,
+    userLanguage: userLanguage.value,
+  })
+  if (isEnabled.value) {
+    isActivatingOnPage.value = false
+    activationSuccess.value = true
+  }
+}
+
+watchEffect(() => {
+  updateSettings()
+})
 
 const activateTranslations = async() => {
-  console.log('activateTranslations clicked')
-  console.log('sending popup.activate')
   // browser.runtime.openOptionsPage()
   isActivatingOnPage.value = true
   activationSuccess.value = false
   await browser.runtime.sendMessage({
     action: 'popup.activate',
   })
-  console.log('sent popup.activate')
 }
 
 browser.runtime.onMessage.addListener(async(request) => {
-  console.log('popup received message', request.action)
-  if (request.action === 'popup.language.detect') {
-    console.log('popup.language.detect', request)
-    currentTabLanguage.value = request.currentTabLanguage
-    userLanguage.value = request.userLanguage
-    currentActiveTabId.value = request.currentActiveTabId
-  }
+  console.log('popup request', request)
+
+  if (request.extensionSettings) extensionSettings.value = request.extensionSettings
 
   if (request.action === 'popup.activate.finished') {
-    console.log('popup.activate.finished', request)
-    isActivatingOnPage.value = false
-    activationSuccess.value = true
-    userLanguage.value = request.activeTab.userLanguage
-    currentTabLanguage.value = request.activeTab.currentTabLanguage
-    contentActiveTab.value = request.activeTab
+    currentTabLanguage.value = request.currentActiveTab.currentTabLanguage
+    activeTabId.value = request.activeTabId
+    currentActiveTab.value = request.currentActiveTab
   }
-
-  if (request.action === 'popup.activeTabs') {
-    contentActiveTab.value = request.activeTab
-    currentActiveTabId.value = request.currentActiveTabId
-    userLanguage.value = request.activeTab.userLanguage
-    currentTabLanguage.value = request.activeTab.currentTabLanguage
-    console.log('request.activeTabs ', request)
+  else if (request.action === 'popup.activeTabs') {
+    currentActiveTab.value = request.currentActiveTab
+    activeTabId.value = request.activeTabId
+    currentTabLanguage.value = request?.currentActiveTab?.currentTabLanguage
   }
+  updateSettings()
 })
 
-const setLanguagePairs = async() => {
-  console.log('setLanguagePairs', userLanguage.value,
-    currentTabLanguage.value)
-  await browser.runtime.sendMessage({
-    action: 'bg.language.set',
-    userLanguage: userLanguage.value,
-    currentTabLanguage: currentTabLanguage.value,
-  })
-}
-
-const getVoices = async() => {
-  const synth = await window.speechSynthesis
-  const voices = await synth.getVoices()
-  return voices
-}
-
 onMounted(async() => {
-  console.log('init called')
-  // console.log('sending popup.language.detect and popup.content.activate')
-  console.log('popup request bg.activeTabs')
   await browser.runtime.sendMessage({
     action: 'bg.activeTabs',
   })
-  // await browser.runtime.sendMessage({
-  //   action: 'popup.content.activate',
-  // })
-  getVoices()
+  if (!userLanguage.value) {
+    const detectedUserLanguage = getBrowserLanguage()
+    userLanguage.value = detectedUserLanguage
+  }
+  voices.value = window?.speechSynthesis?.getVoices()
 })
-console.log('popup end')
 </script>

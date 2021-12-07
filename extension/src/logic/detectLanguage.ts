@@ -59,16 +59,21 @@ const detectLanguage = async() => {
     })
 }
 
-const getLanguageDefaults = async() => {
-  const detectLanguageResult = await detectLanguage()
-  const currentTabLanguage = detectLanguageResult.language
-
+const getBrowserLanguage = (): string => {
   const browserLanguage = languageOptions.filter(l =>
     navigator.language.includes(l.code),
   )
-  const userLanguage = browserLanguage.length ? browserLanguage[0].code : ''
+  return browserLanguage.length ? browserLanguage[0].code : ''
+}
+
+const getLanguageDefaults = async() => {
+  const detectLanguageResult = await detectLanguage()
+  const currentTabLanguage = detectLanguageResult.language
+  const userLanguage = getBrowserLanguage()
+
   if (userLanguage && currentTabLanguage) return { userLanguage, currentTabLanguage }
   throw new Error('could not identify language defaults')
 }
 
 export default getLanguageDefaults
+export { getBrowserLanguage }

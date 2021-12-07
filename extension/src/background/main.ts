@@ -1,44 +1,25 @@
 import browser from 'webextension-polyfill'
-import activeTab from '../types/activeTab'
-console.log('background script loaded')
+import tabData from '../types/tabData'
 
-let currentActiveTabId = -1
+let activeTabId = -1
+const currentTabLanguage = ''
+const userLanguage = ''
+let activeTabs: tabData[] = []
 
-let activeTabs: activeTab[] = []
-
-browser.tabs.onActivated.addListener((tabId, changeInfo, tab) => {
-  browser.tabs.get(tabId.tabId)
-    .then((tab) => {
-      console.log(`New active tab: ${tab.id}`)
-      currentActiveTabId = tab.id
-    })
-})
-
-const sendMessageToActiveTab = async(message) => {
-  console.log('sendMessageToActiveTab 1')
-  browser.tabs
-    .query({ currentWindow: true, active: true })
-    .then(([tab]) => {
-      console.log('sendMessageToActiveTab2')
-      if (tab && tab.id) {
-        browser.tabs.sendMessage(tab.id, message)
-        console.log('sendMessageToActiveTab3', tab.id, message)
-      }
-    })
-    .catch(e => console.log('message error', e))
-  console.log('sendMessageToActiveTab 1')
+interface ExtensionSettings {
+  speakWords: boolean
+  speakSentences: boolean
+  isExtensionActiveInAllTabs: boolean
 }
 
-// only on dev mode
-// if (import.meta.hot) {
-//   // @ts-expect-error for background HMR
-//   import('/@vite/client')
-//   // load latest content script
-//   import('./contentScriptHMR')
-// }
+let extensionSettings: ExtensionSettings = {
+  speakWords: false,
+  speakSentences: false,
+  isExtensionActiveInAllTabs: false,
+}
 
-async function activateTranslationsInTab() {
-  if (!activeTabs.includes(currentActiveTabId)) {
+async function injectExtensionInTab(): Promise<void> {
+  if (!activeTabs.find(t => t.id === activeTabId)) {
     // change browser button badge test
     // browser.browserAction.setBadgeBackgroundColor({ color: [213, 63, 140, 230] })
     // browser.browserAction.setBadgeText({ text: '1' })
@@ -46,63 +27,106 @@ async function activateTranslationsInTab() {
     await browser.tabs.insertCSS({ file: '/dist/contentScripts/style.css' }).catch(e => console.warn('file css error', e))
   }
   else {
-    console.log('already active tab id', currentActiveTabId)
+    console.log('already active tab id', activeTabs, activeTabId)
     // await sendMessageToActiveTab({ action: 'toggle.sidebar' })
   }
   console.log('activeTabs', activeTabs)
-  return true
 }
 
-browser.runtime.onInstalled.addListener((): void => {
-  // eslint-disable-next-line no-console
-  console.log('Extension installed')
-})
+function isCurrentTabInstalled(): boolean {
+  return !!activeTabs.find(t => t.id === activeTabId)
+}
+
+function updateOpenTabsData(currentTabLanguage: string, userLanguage: string): void {
+  console.log('updateOpenTabsData', activeTabId, currentTabLanguage)
+  if (activeTabId === -1 || !currentTabLanguage) return
+  if (isCurrentTabInstalled()) {
+    // update
+    activeTabs.map((t: tabData) => {
+      if (t.id === activeTabId) {
+        t.currentTabLanguage = currentTabLanguage
+        t.userLanguage = userLanguage
+      }
+      return t
+    })
+  }
+  else {
+    // create
+    activeTabs.push({
+      id: activeTabId,
+      currentTabLanguage,
+      userLanguage,
+    })
+  }
+  return activeTabs
+}
+
+const sendMessageToActiveTab = async(message: any): Promise<void> => {
+  browser.tabs
+    .query({ currentWindow: true, active: true })
+    .then(([tab]) => {
+      if (tab && tab.id)
+        browser.tabs.sendMessage(tab.id, message)
+    })
+    .catch(e => console.warn('message error', e))
+}
+
+function getCurrentActiveTab(): tabData | undefined {
+  if (activeTabId === -1 || !activeTabs.length) return undefined
+  return activeTabs.find(t => t.id === activeTabId)
+}
 
 browser.runtime.onMessage.addListener(async(request) => {
-  console.log('background received request', request.action)
-
-  if (request.action === 'bg.tab.ready') {
-    console.log('background sending popup.activate.finished', request)
-    const activeTab = {
-      id: currentActiveTabId,
-      currentTabLanguage: request.userLanguage,
-      userLanguage: request.currentTabLanguage,
-
-    }
-    activeTabs.push(activeTab)
-    // browser.runtime.sendMessage({
-    //   action: 'popup.activeTabs',
-    //   activeTabs,
-    //   currentActiveTabId,
-    // })
+  console.log('background received request', request)
+  if (request.action === 'popup.activate') {
+    await injectExtensionInTab()
+  }
+  else if (request.action === 'bg.extensionSettings') {
+    extensionSettings = request.extensionSettings
+    updateOpenTabsData(request?.currentTabLanguage, request.userLanguage)
+    const currentActiveTab = getCurrentActiveTab()
+    await sendMessageToActiveTab({
+      action: 'content.settings',
+      activeTabId,
+      currentActiveTab,
+      extensionSettings,
+    })
+  }
+  else if (request.action === 'bg.tab.ready') {
+    updateOpenTabsData(request?.currentTabLanguage, userLanguage)
+    const currentActiveTab = getCurrentActiveTab()
     browser.runtime.sendMessage({
       action: 'popup.activate.finished',
-      activeTab,
-      currentActiveTabId,
+      currentActiveTab,
+      activeTabId,
+      extensionSettings,
     })
   }
-
-  if (request.action === 'popup.activate') {
-    await activateTranslationsInTab()
-    await sendMessageToActiveTab({
-      action: 'content.activate',
-    })
-  }
-
-  if (request.action === 'bg.activeTabs') {
-    const activeTab = activeTabs.find(t => t.id === currentActiveTabId)
-    console.log('send active tabs to popup', activeTab, activeTabs)
+  else if (request.action === 'bg.activeTabs') {
+    const currentActiveTab = getCurrentActiveTab()
     browser.runtime.sendMessage({
       action: 'popup.activeTabs',
-      activeTab,
-      currentActiveTabId,
+      currentActiveTab,
+      activeTabId,
+      extensionSettings,
     })
   }
 })
 
-// --- On Reloading ---
+// --- On Reloading, remove tabs from active ---
 browser.webNavigation.onCommitted.addListener((details) => {
-  console.log('remove', details.tabId, 'from', activeTabs)
   activeTabs = activeTabs.filter(t => t.id !== details.tabId)
-  console.log('result activeTabs', activeTabs)
 })
+
+// detect currently active tab
+browser.tabs.onActivated.addListener((tabId) => {
+  browser.tabs.get(tabId.tabId)
+    .then((tab) => {
+      if (tab.id) activeTabId = tab.id
+    })
+})
+
+// browser.runtime.onInstalled.addListener((): void => {
+//   // eslint-disable-next-line no-console
+//   console.log('Extension installed')
+// })
