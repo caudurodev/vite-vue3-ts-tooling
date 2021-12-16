@@ -37,15 +37,15 @@ function isCurrentTabInstalled(): boolean {
   return !!activeTabs.find(t => t.id === activeTabId)
 }
 
-function updateOpenTabsData(currentTabLanguage: string, userLanguage: string): void {
+function updateOpenTabsData(currentTabLanguage: string, userLanguage: string): tabData[] {
   console.log('updateOpenTabsData', activeTabId, currentTabLanguage)
-  if (activeTabId === -1 || !currentTabLanguage) return
+  if (activeTabId === -1 || !currentTabLanguage) return []
   if (isCurrentTabInstalled()) {
     // update
-    activeTabs.map((t: tabData) => {
+    activeTabs = activeTabs.map((t: tabData) => {
       if (t.id === activeTabId) {
-        t.currentTabLanguage = currentTabLanguage
-        t.userLanguage = userLanguage
+        if (t.currentTabLanguage) t.currentTabLanguage = currentTabLanguage || ''
+        if (t.userLanguage) t.userLanguage = userLanguage || ''
       }
       return t
     })
@@ -55,7 +55,7 @@ function updateOpenTabsData(currentTabLanguage: string, userLanguage: string): v
     activeTabs.push({
       id: activeTabId,
       currentTabLanguage,
-      userLanguage,
+      userLanguage: userLanguage || '',
     })
   }
   return activeTabs
@@ -83,7 +83,7 @@ browser.runtime.onMessage.addListener(async(request) => {
   }
   else if (request.action === 'bg.extensionSettings') {
     extensionSettings = request.extensionSettings
-    updateOpenTabsData(request?.currentTabLanguage, request.userLanguage)
+    updateOpenTabsData(request?.currentTabLanguage, request?.userLanguage)
     const currentActiveTab = getCurrentActiveTab()
     await sendMessageToActiveTab({
       action: 'content.settings',

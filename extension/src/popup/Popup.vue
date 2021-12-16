@@ -1,7 +1,7 @@
 <template>
   <main class="w-300px px-4 py-5 text-center text-gray-700">
     <h3 class="py-2">
-      Your Language - userLanguage{{ userLanguage }}
+      Your Language
     </h3>
     <select
       v-model="userLanguage"
@@ -16,7 +16,7 @@
       </option>
     </select>
     <h3 class="py-2">
-      Tab Language - currentTabLanguage {{ currentTabLanguage }}
+      Content Language
     </h3>
     <select
       v-model="currentTabLanguage"
@@ -105,7 +105,7 @@ const languageOptions = ref<Language[]>([
   { label: 'Français', code: 'fr' },
   { label: 'Español', code: 'es' },
 ])
-const userLanguage = ref<string>()
+const userLanguage = ref<string>('')
 
 const isActivatingOnPage = ref<boolean>(false)
 const activationSuccess = ref<boolean>(true)
@@ -128,14 +128,14 @@ const activeTabId = ref<number>()
 const isEnabled = computed(() => !!(currentActiveTab.value?.id === activeTabId.value && currentTabLanguage.value && userLanguage.value))
 
 function updateSettings() {
-  console.log('updateSettings', currentActiveTab.value?.id, ' === ', activeTabId.value, currentTabLanguage.value, userLanguage.value)
+  // console.log('updateSettings', currentActiveTab.value?.id, ' === ', activeTabId.value, currentTabLanguage.value, userLanguage.value)
 
   if (!currentTabLanguage.value || !userLanguage.value) return
   browser.runtime.sendMessage({
     action: 'bg.extensionSettings',
     extensionSettings: extensionSettings.value,
     currentTabLanguage: currentTabLanguage.value,
-    userLanguage: userLanguage.value,
+    userLanguage: userLanguage.value || '',
   })
   if (isEnabled.value) {
     isActivatingOnPage.value = false
@@ -180,7 +180,7 @@ onMounted(async() => {
   })
   if (!userLanguage.value) {
     const detectedUserLanguage = getBrowserLanguage()
-    userLanguage.value = detectedUserLanguage
+    userLanguage.value = detectedUserLanguage || ''
   }
   voices.value = window?.speechSynthesis?.getVoices()
 })

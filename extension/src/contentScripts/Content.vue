@@ -130,10 +130,10 @@ function trackContentClicks() {
 browser.runtime.onMessage.addListener(async(request) => {
   console.log('content listener received', request)
   if (request.action === 'content.settings') {
-    userLanguage.value = request.currentAvtiveTab.userLanguage
-    currentTabLanguage.value = request.currentAvtiveTab.currentTabLanguage
-    speakWords.value = request.extensionSettings.speakWords
-    speakSentences.value = request.extensionSettings.speakSentences
+    userLanguage.value = request.currentAvtiveTab?.userLanguage || ''
+    currentTabLanguage.value = request.currentAvtiveTab?.currentTabLanguage || ''
+    speakWords.value = request.extensionSettings?.speakWords || false
+    speakSentences.value = request.extensionSettings?.speakSentences || false
   }
 })
 
