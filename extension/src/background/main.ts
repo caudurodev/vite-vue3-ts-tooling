@@ -2,8 +2,6 @@ import browser from 'webextension-polyfill'
 import tabData from '../types/tabData'
 
 let activeTabId = -1
-const currentTabLanguage = ''
-const userLanguage = ''
 let activeTabs: tabData[] = []
 
 interface ExtensionSettings {
@@ -25,6 +23,7 @@ async function injectExtensionInTab(): Promise<void> {
     // browser.browserAction.setBadgeText({ text: '1' })
     await browser.tabs.executeScript({ file: '/dist/contentScripts/index.global.js' }).catch(e => console.warn('file js error', e))
     await browser.tabs.insertCSS({ file: '/dist/contentScripts/style.css' }).catch(e => console.warn('file css error', e))
+    console.log('new active tab')
   }
   else {
     console.log('already active tab id', activeTabs, activeTabId)
@@ -33,20 +32,17 @@ async function injectExtensionInTab(): Promise<void> {
   console.log('activeTabs', activeTabs)
 }
 
-function isCurrentTabInstalled(): boolean {
+function isCurrentTabActivated(): boolean {
   return !!activeTabs.find(t => t.id === activeTabId)
 }
 
-function updateOpenTabsData(currentTabLanguage: string, userLanguage: string): tabData[] {
-  console.log('updateOpenTabsData', activeTabId, currentTabLanguage)
-  if (activeTabId === -1 || !currentTabLanguage) return []
-  if (isCurrentTabInstalled()) {
+function updateOpenTabsData(request: any): tabData[] {
+  if (activeTabId === -1) return activeTabs
+  if (isCurrentTabActivated()) {
     // update
     activeTabs = activeTabs.map((t: tabData) => {
-      if (t.id === activeTabId) {
-        if (t.currentTabLanguage) t.currentTabLanguage = currentTabLanguage || ''
-        if (t.userLanguage) t.userLanguage = userLanguage || ''
-      }
+      if (t.id === activeTabId)
+        return { ...t, currentTabLanguage: request?.currentTabLanguage, userLanguage: request?.userLanguage }
       return t
     })
   }
@@ -54,8 +50,8 @@ function updateOpenTabsData(currentTabLanguage: string, userLanguage: string): t
     // create
     activeTabs.push({
       id: activeTabId,
-      currentTabLanguage,
-      userLanguage: userLanguage || '',
+      currentTabLanguage: request?.currentTabLanguage || '',
+      userLanguage: request?.userLanguage || '',
     })
   }
   return activeTabs
@@ -71,42 +67,50 @@ const sendMessageToActiveTab = async(message: any): Promise<void> => {
     .catch(e => console.warn('message error', e))
 }
 
-function getCurrentActiveTab(): tabData | undefined {
-  if (activeTabId === -1 || !activeTabs.length) return undefined
-  return activeTabs.find(t => t.id === activeTabId)
+function getCurrentActiveTab(): tabData | null {
+  if (activeTabId === -1 || !activeTabs.length) return null
+  return activeTabs.find(t => t.id === activeTabId) || null
 }
 
 browser.runtime.onMessage.addListener(async(request) => {
   console.log('background received request', request)
+
+  if (activeTabId < 0) throw new Error('currentActiveTab undefined, cannot continue.')
+
   if (request.action === 'popup.activate') {
     await injectExtensionInTab()
   }
   else if (request.action === 'bg.extensionSettings') {
     extensionSettings = request.extensionSettings
-    updateOpenTabsData(request?.currentTabLanguage, request?.userLanguage)
-    const currentActiveTab = getCurrentActiveTab()
     await sendMessageToActiveTab({
       action: 'content.settings',
       activeTabId,
-      currentActiveTab,
+      currentActiveTab: getCurrentActiveTab(),
+      extensionSettings,
+    })
+  }
+  else if (request.action === 'bg.tabSettings') {
+    updateOpenTabsData(request)
+    await sendMessageToActiveTab({
+      action: 'content.settings',
+      activeTabId,
+      currentActiveTab: getCurrentActiveTab(),
       extensionSettings,
     })
   }
   else if (request.action === 'bg.tab.ready') {
-    updateOpenTabsData(request?.currentTabLanguage, userLanguage)
-    const currentActiveTab = getCurrentActiveTab()
-    browser.runtime.sendMessage({
+    updateOpenTabsData(request)
+    await browser.runtime.sendMessage({
       action: 'popup.activate.finished',
-      currentActiveTab,
       activeTabId,
+      currentActiveTab: getCurrentActiveTab(),
       extensionSettings,
     })
   }
   else if (request.action === 'bg.activeTabs') {
-    const currentActiveTab = getCurrentActiveTab()
-    browser.runtime.sendMessage({
+    await browser.runtime.sendMessage({
       action: 'popup.activeTabs',
-      currentActiveTab,
+      currentActiveTab: getCurrentActiveTab(),
       activeTabId,
       extensionSettings,
     })

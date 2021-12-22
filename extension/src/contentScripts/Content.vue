@@ -130,10 +130,10 @@ function trackContentClicks() {
 browser.runtime.onMessage.addListener(async(request) => {
   console.log('content listener received', request)
   if (request.action === 'content.settings') {
-    userLanguage.value = request.currentAvtiveTab?.userLanguage || ''
-    currentTabLanguage.value = request.currentAvtiveTab?.currentTabLanguage || ''
-    speakWords.value = request.extensionSettings?.speakWords || false
-    speakSentences.value = request.extensionSettings?.speakSentences || false
+    userLanguage.value = request?.currentActiveTab?.userLanguage || ''
+    currentTabLanguage.value = request?.currentActiveTab?.currentTabLanguage || ''
+    speakWords.value = request?.extensionSettings?.speakWords || false
+    speakSentences.value = request?.extensionSettings?.speakSentences || false
   }
 })
 
@@ -141,16 +141,16 @@ onMounted(async() => {
   trackContentClicks()
   try {
     const { currentTabLanguage: initialCurrentTabLanguage, userLanguage: initialUserLanguage } = await getLanguageDefaults()
-    userLanguage.value = initialUserLanguage
-    currentTabLanguage.value = initialCurrentTabLanguage
+    userLanguage.value = initialUserLanguage || ''
+    currentTabLanguage.value = initialCurrentTabLanguage || ''
   }
   catch (e: any) {
     console.warn('error getLanguageDefaults', e?.message)
   }
   await browser.runtime.sendMessage({
     action: 'bg.tab.ready',
-    userLanguage: userLanguage.value,
-    currentTabLanguage: currentTabLanguage.value,
+    userLanguage: userLanguage.value || '',
+    currentTabLanguage: currentTabLanguage.value || '',
   })
 })
 </script>

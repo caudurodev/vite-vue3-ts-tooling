@@ -31,10 +31,11 @@ export default defineComponent({
       default: false,
     },
   },
-  emits: ['update:modelValue'],
+  emits: ['change', 'update:modelValue'],
   setup(props, context) {
     const toggle = () => {
       context.emit('update:modelValue', !props.modelValue)
+      context.emit('change')
     }
     return { toggle }
   },

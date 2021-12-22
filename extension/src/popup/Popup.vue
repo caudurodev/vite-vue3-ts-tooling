@@ -37,6 +37,7 @@
       <Toggle
         :model-value="extensionSettings.speakWords"
         @update:model-value="extensionSettings.speakWords = $event"
+        @change="updateExtensionSettings()"
       />
     </div>
     <div class="px-3 py-2 flex items-center justify-between">
@@ -46,6 +47,7 @@
       <Toggle
         :model-value="extensionSettings.speakSentences"
         @update:model-value="extensionSettings.speakSentences = $event"
+        @change="updateExtensionSettings()"
       />
     </div>
     <div class="px-3 py-2 flex items-center justify-between">
@@ -54,7 +56,8 @@
       </div>
       <Toggle
         :model-value="extensionSettings.isExtensionActiveInAllTabs"
-        @update:model-value="extensionSettings.isExtensionActiveInAllTabs = $event"
+        @update:model-value=" extensionSettings.isExtensionActiveInAllTabs = $event"
+        @change="updateExtensionSettings()"
       />
     </div>
     <button
@@ -127,37 +130,44 @@ const activeTabId = ref<number>()
 
 const isEnabled = computed(() => !!(currentActiveTab.value?.id === activeTabId.value && currentTabLanguage.value && userLanguage.value))
 
-function updateSettings() {
-  // console.log('updateSettings', currentActiveTab.value?.id, ' === ', activeTabId.value, currentTabLanguage.value, userLanguage.value)
-
-  if (!currentTabLanguage.value || !userLanguage.value) return
-  browser.runtime.sendMessage({
-    action: 'bg.extensionSettings',
-    extensionSettings: extensionSettings.value,
-    currentTabLanguage: currentTabLanguage.value,
-    userLanguage: userLanguage.value || '',
-  })
+watch([currentTabLanguage, userLanguage], (newValues, prevValues) => {
   if (isEnabled.value) {
+    browser.runtime.sendMessage({
+      action: 'bg.tabSettings',
+      currentTabLanguage: newValues[0],
+      userLanguage: newValues[1] || '',
+    })
     isActivatingOnPage.value = false
     activationSuccess.value = true
   }
-}
-
-watchEffect(() => {
-  updateSettings()
 })
+
+function updateExtensionSettings() {
+  console.log('update')
+  browser.runtime.sendMessage({
+    action: 'bg.extensionSettings',
+    extensionSettings: extensionSettings.value,
+  })
+}
 
 const activateTranslations = async() => {
   // browser.runtime.openOptionsPage()
   isActivatingOnPage.value = true
   activationSuccess.value = false
-  await browser.runtime.sendMessage({
+  browser.runtime.sendMessage({
     action: 'popup.activate',
   })
 }
 
 browser.runtime.onMessage.addListener(async(request) => {
   console.log('popup request', request)
+  if (request.action === 'popup.activeTabs') {
+    currentActiveTab.value = request.currentActiveTab
+    activeTabId.value = request.activeTabId
+    currentTabLanguage.value = request?.currentActiveTab?.currentTabLanguage
+  }
+  if (request.activeTabId < 0)
+    throw new Error('Active Tab not identified')
 
   if (request.extensionSettings) extensionSettings.value = request.extensionSettings
 
@@ -165,13 +175,10 @@ browser.runtime.onMessage.addListener(async(request) => {
     currentTabLanguage.value = request.currentActiveTab.currentTabLanguage
     activeTabId.value = request.activeTabId
     currentActiveTab.value = request.currentActiveTab
+    isActivatingOnPage.value = false
+    activationSuccess.value = true
   }
-  else if (request.action === 'popup.activeTabs') {
-    currentActiveTab.value = request.currentActiveTab
-    activeTabId.value = request.activeTabId
-    currentTabLanguage.value = request?.currentActiveTab?.currentTabLanguage
-  }
-  updateSettings()
+  return true
 })
 
 onMounted(async() => {
