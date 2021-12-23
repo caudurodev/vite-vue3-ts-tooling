@@ -120,13 +120,17 @@ browser.runtime.onMessage.addListener(async(request) => {
 // --- On Reloading, remove tabs from active ---
 browser.webNavigation.onCommitted.addListener((details) => {
   activeTabs = activeTabs.filter(t => t.id !== details.tabId)
+  if (extensionSettings.isExtensionActiveInAllTabs) injectExtensionInTab()
 })
 
 // detect currently active tab
 browser.tabs.onActivated.addListener((tabId) => {
   browser.tabs.get(tabId.tabId)
     .then((tab) => {
-      if (tab.id) activeTabId = tab.id
+      if (tab.id) {
+        activeTabId = tab.id
+        if (extensionSettings.isExtensionActiveInAllTabs) injectExtensionInTab()
+      }
     })
 })
 

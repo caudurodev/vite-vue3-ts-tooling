@@ -70,22 +70,17 @@ const getFullSentence = (e: JQuery.TriggeredEvent) => {
 
 function trackContentClicks() {
   $(document.body).on('click', (e: JQuery.TriggeredEvent) => {
-    if ($(e.target).find('img').length || $(e.target).closest('img').length) {
-      $(e.target).trigger('click')
-      console.log('img trigger click?')
-      return
-    }
-    if (!$(e.target).text()) {
-      $(e.target).trigger('click')
-      console.log('no text - trigger click?')
-      return
-    }
     if (
       $(e.target).is('body, wordwrap, .learnword, .translatetools')
     || !!$(e.target).closest('wordwrap, .learnword, .translatetools').length
     ) {
       console.log('ignore click....')
       return
+    }
+    if (!$(e.target).text()) {
+      $(e.target).find('*').first().trigger('click')
+      console.log('no text - trigger click!', $(e.target).find('*').first())
+      return false
     }
 
     const { word } = WordUnderCursor.getFullWord(e)
