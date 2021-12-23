@@ -68,6 +68,17 @@ const getFullSentence = (e: JQuery.TriggeredEvent) => {
   return {}
 }
 
+// function trackContentMouseOver() {
+//   $(document.body).on('mousemove', (e) => {
+//     if (
+//       $(e.target).is('body, wordwrap, .learnword, .translatetools')
+//     || !!$(e.target).closest('wordwrap, .learnword, .translatetools').length
+//     )
+//       return
+//     const { clicked, x, y } = getFullSentence(e)
+//   })
+// }
+
 function trackContentClicks() {
   $(document.body).on('click', (e: JQuery.TriggeredEvent) => {
     if (
@@ -141,6 +152,7 @@ browser.runtime.onMessage.addListener(async(request) => {
 
 onMounted(async() => {
   trackContentClicks()
+  // trackContentMouseOver()
   try {
     const { currentTabLanguage: initialCurrentTabLanguage, userLanguage: initialUserLanguage } = await getLanguageDefaults()
     userLanguage.value = initialUserLanguage || ''

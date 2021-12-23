@@ -1,5 +1,10 @@
 <template>
-  <span v-if="hasWords" class="learnsentence">
+  <span
+    v-if="hasWords"
+    class="learnsentence"
+    @mouseover="isMouseOverSentence=true"
+    @mouseout="isMouseOverSentence=false"
+  >
     <span
       v-for="word in words"
       :key="word.id"
@@ -64,12 +69,12 @@
     </span>
     <span v-if="sentence[sentence.length-1] === '' " v-html="'&nbsp'" />
   </span>
-  <span v-if="isMounted" class="translatetools">
+  <span class="translatetools">
     <button
       class="mx-2 bg-pink-500 text-white py-1 px-2 rounded border-none"
       @click="toggleSentenceTranslation()"
     >
-      <icon-park:translate class="m-auto text-xs" />
+      <ph:translate-bold />
     </button>
     <span v-if="isShowingSentenceTranslation" class="bg-pink-500 text-white inline">
       {{ sentenceTranslation }}
@@ -135,6 +140,7 @@ export default defineComponent({
     const { sentence, x, y, currentTabLanguage, speakSentences, speakWords, userLanguage } = toRefs(props)
     const isShowingSentenceTranslation = ref<boolean>(false)
     const isMounted = ref<boolean>(false)
+    const isMouseOverSentence = ref<boolean>(false)
     const hasWords = ref<boolean>(false)
     const sentenceTranslation = ref<string>('...')
     const singleWordElements = ref<HTMLSpanElement[]>([])
@@ -386,6 +392,7 @@ export default defineComponent({
       rangeWordElements,
       isShowingSentenceTranslation,
       isMounted,
+      isMouseOverSentence,
       hasWords,
       sentenceTranslation,
       showRangeFromWord,
